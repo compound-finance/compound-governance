@@ -9,6 +9,7 @@
   "scripts": {
     "test": "hardhat test",
     "coverage": "hardhat coverage",
+    "build": "hardhat compile",
     "lint:fix": "prettier --write **/*.{sol,js,ts} && eslint --fix . --ext js,ts",
     "lint:check": "concurrently \"prettier --check **.{sol,js,ts}\" \"eslint . --ext js,ts\""
   },
