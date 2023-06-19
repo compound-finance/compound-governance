@@ -1,8 +1,4 @@
-import {
-  loadFixture,
-  time,
-  mine,
-} from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import {
@@ -37,7 +33,7 @@ describe("Governor Bravo", function () {
       );
       const addresses = (await ethers.getSigners()).slice(3);
       const governorBravoDelegate = await GovernorBravoDelegate.deploy();
-      let governorBravo = await GovernorBravoDelegator.deploy(
+      await GovernorBravoDelegator.deploy(
         addresses[0].address,
         addresses[1].address,
         addresses[2].address,
@@ -220,9 +216,7 @@ describe("Governor Bravo", function () {
 
   describe("Propose", function () {
     it("Happy Path", async function () {
-      const { governorBravo, owner, otherAccount } = await loadFixture(
-        deployFixtures
-      );
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
 
       let proposalId = await propose(
         governorBravo,
@@ -256,9 +250,7 @@ describe("Governor Bravo", function () {
     });
 
     it("Error: arity Mismatch", async function () {
-      const { governorBravo, owner, otherAccount } = await loadFixture(
-        deployFixtures
-      );
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
 
       await expect(
         propose(
@@ -376,7 +368,7 @@ describe("Governor Bravo", function () {
     });
 
     it("Error: at least one action", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const { governorBravo } = await loadFixture(deployFixtures);
 
       await expect(
         propose(governorBravo, [], [], [], "Empty")
@@ -384,7 +376,7 @@ describe("Governor Bravo", function () {
     });
 
     it("Error: below max operations", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const { governorBravo } = await loadFixture(deployFixtures);
       await expect(
         propose(
           governorBravo,
@@ -416,7 +408,9 @@ describe("Governor Bravo", function () {
         100,
         BigInt("1000") * 10n ** 18n
       )) as unknown as GovernorBravoDelegate;
-      governorBravo = GovernorBravoDelegate.attach(await governorBravo.getAddress()) as GovernorBravoDelegate;
+      governorBravo = GovernorBravoDelegate.attach(
+        await governorBravo.getAddress()
+      ) as GovernorBravoDelegate;
 
       await expect(
         propose(governorBravo, [owner], [1], ["0x"], "Desc")
@@ -498,9 +492,7 @@ describe("Governor Bravo", function () {
 
   describe("Execute", function () {
     it("Happy Path", async function () {
-      const { governorBravo, owner, otherAccount } = await loadFixture(
-        deployFixtures
-      );
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
       const tx = { to: await governorBravo.timelock(), value: 1000 };
       await owner.sendTransaction(tx);
       const proposalId = await proposeAndQueue(
@@ -520,9 +512,7 @@ describe("Governor Bravo", function () {
     });
 
     it("Error: not queued", async function () {
-      const { governorBravo, owner, otherAccount } = await loadFixture(
-        deployFixtures
-      );
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
       const tx = { to: await governorBravo.timelock(), value: 1000 };
       await owner.sendTransaction(tx);
       const proposalId = await propose(
@@ -541,7 +531,7 @@ describe("Governor Bravo", function () {
 
   describe("Cancel", function () {
     it("Happy Path: proposer cancel", async function () {
-      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      const { governorBravo } = await loadFixture(deployFixtures);
       const proposalId = await proposeAndPass(
         governorBravo,
         [governorBravo],
@@ -570,9 +560,7 @@ describe("Governor Bravo", function () {
     });
 
     it("Error: above threshold", async function () {
-      const { governorBravo, comp, otherAccount } = await loadFixture(
-        deployFixtures
-      );
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
       const proposalId = await proposeAndPass(
         governorBravo,
         [governorBravo],
@@ -685,19 +673,23 @@ describe("Governor Bravo", function () {
 
   describe("Vote", function () {
     it("With Reason", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const { governorBravo } = await loadFixture(deployFixtures);
       const proposalId = await propose(
         governorBravo,
         [governorBravo],
         [0],
-        [ethers.AbiCoder.defaultAbiCoder().encode(["string"], ["encoded value"])],
+        [
+          ethers.AbiCoder.defaultAbiCoder().encode(
+            ["string"],
+            ["encoded value"]
+          ),
+        ],
         "My proposal"
       );
 
       await expect(
         governorBravo.castVoteWithReason(proposalId, 0, "We need more info")
-      )
-        .to.emit(governorBravo, "VoteCast");
+      ).to.emit(governorBravo, "VoteCast");
     });
   });
 
@@ -732,10 +724,6 @@ describe("Governor Bravo", function () {
     await governorBravo.castVote(proposalId, 2);
     expect(
       await governorBravo.getReceipt(proposalId, owner.address)
-    ).to.deep.equal([
-      true,
-      2,
-      BigInt("10000000000000000000000000"),
-    ]);
+    ).to.deep.equal([true, 2, BigInt("10000000000000000000000000")]);
   });
 });

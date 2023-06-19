@@ -1,7 +1,6 @@
 import { time, mine } from "@nomicfoundation/hardhat-network-helpers";
-import { BigNumberish, Contract } from "ethers";
+import { BigNumberish, Addressable, EventLog } from "ethers";
 import { ethers } from "hardhat";
-import { Addressable, EventLog } from "ethers";
 import {
   Comp,
   GovernorAlpha,
@@ -21,7 +20,7 @@ export async function propose(
   description: string
 ): Promise<bigint> {
   const updateTargets = targets.map(async (m) => {
-    if (typeof m == "string") {
+    if (typeof m === "string") {
       return m;
     }
     return await m.getAddress();
@@ -98,9 +97,7 @@ export async function setupGovernorAlpha() {
   )) as unknown as GovernorAlpha;
 
   const eta =
-    BigInt(await time.latest()) +
-    100n +
-    (await timelock.MINIMUM_DELAY());
+    BigInt(await time.latest()) + 100n + (await timelock.MINIMUM_DELAY());
   const txData = (
     await timelock.setPendingAdmin.populateTransaction(
       governorAlpha.getAddress()
@@ -119,7 +116,7 @@ export async function setupGovernorBravo(
   comp: Comp,
   governorAlpha: GovernorAlpha
 ) {
-  const [owner, otherAccount] = await ethers.getSigners();
+  const [owner] = await ethers.getSigners();
   const GovernorBravoDelegator = await ethers.getContractFactory(
     "GovernorBravoDelegator"
   );
@@ -139,10 +136,6 @@ export async function setupGovernorBravo(
       BigInt("1000") * 10n ** 18n
     )) as unknown as GovernorBravoDelegate;
   await comp.delegate(owner.getAddress());
-  const eta =
-    BigInt(await time.latest()) +
-    100n +
-    (await timelock.MINIMUM_DELAY());
   const txData = (
     await timelock.setPendingAdmin.populateTransaction(
       governorBravo.getAddress()
@@ -160,7 +153,9 @@ export async function setupGovernorBravo(
   await governorAlpha.queue(1);
   await time.increase(await timelock.MINIMUM_DELAY());
   await governorAlpha.execute(1);
-  governorBravo = GovernorBravoDelegate.attach(await governorBravo.getAddress()) as GovernorBravoDelegate;
+  governorBravo = GovernorBravoDelegate.attach(
+    await governorBravo.getAddress()
+  ) as GovernorBravoDelegate;
   await governorBravo._initiate(governorAlpha.getAddress());
 
   return { governorBravo };
