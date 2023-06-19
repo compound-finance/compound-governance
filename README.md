@@ -3,9 +3,9 @@ This repository hosts the up to date contracts for the Compound Protocol governa
 
 ## Running
 ### Setup
-- `yarn install`
+- `npm install`
 ### Tests
-- `yarn test`
+- `npm test`
 ### Coverage
-- `yarn coverage`
+- `npm run coverage`
 
