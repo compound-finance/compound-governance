@@ -35,9 +35,8 @@ jobs:
         run: npm ci
       - name: Run Coverage
         run: npm run coverage
-      - uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v2
   lint:
     runs-on: ubuntu-latest
     steps:
