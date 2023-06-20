@@ -1,5 +1,5 @@
 import { time, mine } from "@nomicfoundation/hardhat-network-helpers";
-import { BigNumberish, Addressable, EventLog } from "ethers";
+import { BigNumberish, EventLog, AddressLike, Addressable } from "ethers";
 import { ethers } from "hardhat";
 import {
   Comp,
@@ -14,10 +14,10 @@ import {
  */
 export async function propose(
   governor: GovernorAlpha | GovernorBravoDelegate,
-  targets: (string | Addressable)[] = [ethers.ZeroAddress],
+  targets: AddressLike[] = [ethers.ZeroAddress],
   values: BigNumberish[] = [0],
   callDatas: string[] = ["0x"],
-  description: string = "Test Proposal"
+  description = "Test Proposal"
 ): Promise<bigint> {
   const tx = await governor.propose(
     targets,
@@ -27,17 +27,18 @@ export async function propose(
     description
   );
 
-  await mine(await governor.votingDelay());
+  await mine((await governor.votingDelay()) + 1n);
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   return ((await tx.wait())!.logs[0] as EventLog).args[0];
 }
 
 export async function proposeAndPass(
   governor: GovernorBravoDelegate,
-  targets: (string | Addressable)[] = [ethers.ZeroAddress],
+  targets: AddressLike[] = [ethers.ZeroAddress],
   values: BigNumberish[] = [0],
   callDatas: string[] = ["0x"],
-  description: string = "Test Proposal"
+  description = "Test Proposal"
 ): Promise<bigint> {
   const proposalId = await propose(
     governor,
@@ -55,10 +56,10 @@ export async function proposeAndPass(
 
 export async function proposeAndQueue(
   governor: GovernorBravoDelegate,
-  targets: (string | Addressable)[] = [ethers.ZeroAddress],
+  targets: AddressLike[] = [ethers.ZeroAddress],
   values: BigNumberish[] = [0],
   callDatas: string[] = ["0x"],
-  description: string = "Test Proposal"
+  description = "Test Proposal"
 ): Promise<bigint> {
   const proposalId = await proposeAndPass(
     governor,
@@ -82,24 +83,23 @@ export async function setupGovernorAlpha() {
     "contracts/GovernorAlpha.sol:GovernorAlpha"
   );
 
-  const timelock = await Timelock.deploy(await owner.getAddress(), 172800);
-  const comp = await Comp.deploy(await owner.getAddress());
+  const timelock = await Timelock.deploy(owner, 172800);
+  const comp = await Comp.deploy(owner);
   const governorAlpha: GovernorAlpha = (await GovernorAlpha.deploy(
-    await timelock.getAddress(),
-    await comp.getAddress(),
-    await owner.getAddress()
+    timelock,
+    comp,
+    owner
   )) as unknown as GovernorAlpha;
 
   const eta =
     BigInt(await time.latest()) + 100n + (await timelock.MINIMUM_DELAY());
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const txData = (
-    await timelock.setPendingAdmin.populateTransaction(
-      governorAlpha.getAddress()
-    )
+    await timelock.setPendingAdmin.populateTransaction(governorAlpha)
   ).data!;
-  await timelock.queueTransaction(timelock.getAddress(), 0, "", txData, eta);
+  await timelock.queueTransaction(timelock, 0, "", txData, eta);
   await time.increaseTo(eta);
-  await timelock.executeTransaction(timelock.getAddress(), 0, "", txData, eta);
+  await timelock.executeTransaction(timelock, 0, "", txData, eta);
   await governorAlpha.__acceptAdmin();
 
   return { governorAlpha, timelock, comp };
@@ -121,23 +121,22 @@ export async function setupGovernorBravo(
   const governorBravoDelegate = await GovernorBravoDelegate.deploy();
   let governorBravo: GovernorBravoDelegate =
     (await GovernorBravoDelegator.deploy(
-      timelock.getAddress(),
-      comp.getAddress(),
-      owner.getAddress(),
-      governorBravoDelegate.getAddress(),
+      timelock,
+      comp,
+      owner,
+      governorBravoDelegate,
       5760,
       100,
-      BigInt("1000") * 10n ** 18n
+      1000n * 10n ** 18n
     )) as unknown as GovernorBravoDelegate;
-  await comp.delegate(owner.getAddress());
+  await comp.delegate(owner);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const txData = (
-    await timelock.setPendingAdmin.populateTransaction(
-      governorBravo.getAddress()
-    )
+    await timelock.setPendingAdmin.populateTransaction(governorBravo)
   ).data!;
   await propose(
     governorAlpha,
-    [await timelock.getAddress()],
+    [timelock],
     [0n],
     [txData],
     "Transfer admin for bravo"
@@ -150,15 +149,12 @@ export async function setupGovernorBravo(
   governorBravo = GovernorBravoDelegate.attach(
     await governorBravo.getAddress()
   ) as GovernorBravoDelegate;
-  await governorBravo._initiate(governorAlpha.getAddress());
+  await governorBravo._initiate(governorAlpha);
 
   return { governorBravo };
 }
 
-export async function getTypedDomain(
-  address: Addressable,
-  chainId: BigInt
-) {
+export async function getTypedDomain(address: Addressable, chainId: bigint) {
   return {
     name: "Compound Governor Bravo",
     chainId: chainId.toString(),
@@ -173,4 +169,15 @@ export function getVoteTypes() {
       { name: "support", type: "uint8" },
     ],
   };
+}
+
+export enum ProposalState {
+  Pending,
+  Active,
+  Canceled,
+  Defeated,
+  Succeeded,
+  Queued,
+  Expired,
+  Executed,
 }

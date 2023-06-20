@@ -13,6 +13,7 @@ import {
   proposeAndQueue,
   getTypedDomain,
   getVoteTypes,
+  ProposalState,
 } from "./governanceHelpers";
 import { GovernorBravoDelegate } from "../typechain-types";
 
@@ -40,10 +41,10 @@ describe("Governor Bravo", function () {
       const addresses = (await ethers.getSigners()).slice(3);
       const governorBravoDelegate = await GovernorBravoDelegate.deploy();
       await GovernorBravoDelegator.deploy(
-        addresses[0].address,
-        addresses[1].address,
-        addresses[2].address,
-        await governorBravoDelegate.getAddress(),
+        addresses[0],
+        addresses[1],
+        addresses[2],
+        governorBravoDelegate,
         5760,
         100,
         BigInt("1000") * 10n ** 18n
@@ -61,10 +62,10 @@ describe("Governor Bravo", function () {
       const governorBravoDelegate = await GovernorBravoDelegate.deploy();
       await expect(
         GovernorBravoDelegator.deploy(
-          addresses[0].address,
-          addresses[1].address,
-          addresses[2].address,
-          await governorBravoDelegate.getAddress(),
+          addresses[0],
+          addresses[1],
+          addresses[2],
+          governorBravoDelegate,
           5759,
           100,
           BigInt("1000") * 10n ** 18n
@@ -73,10 +74,10 @@ describe("Governor Bravo", function () {
 
       await expect(
         GovernorBravoDelegator.deploy(
-          addresses[0].address,
-          addresses[1].address,
-          addresses[2].address,
-          await governorBravoDelegate.getAddress(),
+          addresses[0],
+          addresses[1],
+          addresses[2],
+          governorBravoDelegate,
           80641,
           100,
           BigInt("1000") * 10n ** 18n
@@ -95,10 +96,10 @@ describe("Governor Bravo", function () {
       const governorBravoDelegate = await GovernorBravoDelegate.deploy();
       await expect(
         GovernorBravoDelegator.deploy(
-          addresses[0].address,
-          addresses[1].address,
-          addresses[2].address,
-          await governorBravoDelegate.getAddress(),
+          addresses[0],
+          addresses[1],
+          addresses[2],
+          governorBravoDelegate,
           5760,
           0,
           BigInt("1000") * 10n ** 18n
@@ -107,10 +108,10 @@ describe("Governor Bravo", function () {
 
       await expect(
         GovernorBravoDelegator.deploy(
-          addresses[0].address,
-          addresses[1].address,
-          addresses[2].address,
-          await governorBravoDelegate.getAddress(),
+          addresses[0],
+          addresses[1],
+          addresses[2],
+          governorBravoDelegate,
           5760,
           40321,
           BigInt("1000") * 10n ** 18n
@@ -129,10 +130,10 @@ describe("Governor Bravo", function () {
       const governorBravoDelegate = await GovernorBravoDelegate.deploy();
       await expect(
         GovernorBravoDelegator.deploy(
-          addresses[0].address,
-          addresses[1].address,
-          addresses[2].address,
-          await governorBravoDelegate.getAddress(),
+          addresses[0],
+          addresses[1],
+          addresses[2],
+          await governorBravoDelegate,
           5760,
           40320,
           BigInt("10") * 10n ** 18n
@@ -143,10 +144,10 @@ describe("Governor Bravo", function () {
 
       await expect(
         GovernorBravoDelegator.deploy(
-          addresses[0].address,
-          addresses[1].address,
-          addresses[2].address,
-          await governorBravoDelegate.getAddress(),
+          addresses[0],
+          addresses[1],
+          addresses[2],
+          governorBravoDelegate,
           5760,
           40320,
           BigInt("100001") * 10n ** 18n
@@ -162,8 +163,8 @@ describe("Governor Bravo", function () {
 
       await expect(
         governorBravo.initialize(
-          addresses[0].address,
-          addresses[1].address,
+          addresses[0],
+          addresses[1],
           5760,
           100,
           BigInt("1000") * 10n ** 18n
@@ -184,10 +185,10 @@ describe("Governor Bravo", function () {
       const governorBravoDelegate = await GovernorBravoDelegate.deploy();
       await expect(
         GovernorBravoDelegator.deploy(
-          addresses[0].address,
+          addresses[0],
           ethers.zeroPadBytes("0x", 20),
-          addresses[2].address,
-          await governorBravoDelegate.getAddress(),
+          addresses[2],
+          governorBravoDelegate,
           5760,
           40320,
           BigInt("1000") * 10n ** 18n
@@ -207,9 +208,9 @@ describe("Governor Bravo", function () {
       await expect(
         GovernorBravoDelegator.deploy(
           ethers.zeroPadBytes("0x", 20),
-          addresses[0].address,
-          addresses[2].address,
-          await governorBravoDelegate.getAddress(),
+          addresses[0],
+          addresses[2],
+          governorBravoDelegate,
           5760,
           40320,
           BigInt("1000") * 10n ** 18n
@@ -222,7 +223,7 @@ describe("Governor Bravo", function () {
 
   describe("Propose", function () {
     it("Happy Path", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const { governorBravo } = await loadFixture(deployFixtures);
 
       let proposalId = await propose(governorBravo);
 
@@ -240,10 +241,9 @@ describe("Governor Bravo", function () {
           [governorBravo, governorBravo],
           [0],
           [
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             (
-              await governorBravo._setPendingAdmin.populateTransaction(
-                owner.address
-              )
+              await governorBravo._setPendingAdmin.populateTransaction(owner)
             ).data!,
           ],
           "Steal governance"
@@ -254,9 +254,7 @@ describe("Governor Bravo", function () {
     });
 
     it("Error: below proposal threshold", async function () {
-      const { governorBravo, owner, otherAccount } = await loadFixture(
-        deployFixtures
-      );
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
 
       await expect(
         propose(governorBravo.connect(otherAccount))
@@ -266,7 +264,7 @@ describe("Governor Bravo", function () {
     });
 
     it("Error: active proposal", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const { governorBravo } = await loadFixture(deployFixtures);
 
       await propose(governorBravo);
 
@@ -280,14 +278,13 @@ describe("Governor Bravo", function () {
 
       // Need to stay in the pending state
       await governorBravo.propose(
-        [await governorBravo.getAddress()],
+        [governorBravo],
         [0],
         [""],
         [
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           (
-            await governorBravo._setPendingAdmin.populateTransaction(
-              owner.address
-            )
+            await governorBravo._setPendingAdmin.populateTransaction(owner)
           ).data!,
         ],
         "Steal governance"
@@ -321,7 +318,7 @@ describe("Governor Bravo", function () {
 
     it("Error: bravo not active", async function () {
       const { timelock, comp } = await setupGovernorAlpha();
-      const owner = (await ethers.getSigners())[0].address;
+      const owner = (await ethers.getSigners())[0];
 
       const GovernorBravoDelegator = await ethers.getContractFactory(
         "GovernorBravoDelegator"
@@ -331,16 +328,16 @@ describe("Governor Bravo", function () {
       );
       const governorBravoDelegate = await GovernorBravoDelegate.deploy();
       let governorBravo = (await GovernorBravoDelegator.deploy(
-        await timelock.getAddress(),
-        await comp.getAddress(),
+        timelock,
+        comp,
         owner,
-        await governorBravoDelegate.getAddress(),
+        governorBravoDelegate,
         5760,
         100,
         BigInt("1000") * 10n ** 18n
       )) as unknown as GovernorBravoDelegate;
       governorBravo = GovernorBravoDelegate.attach(
-        await governorBravo.getAddress()
+        governorBravo
       ) as GovernorBravoDelegate;
 
       await expect(
@@ -355,7 +352,7 @@ describe("Governor Bravo", function () {
         );
 
         await governorBravo._setWhitelistAccountExpiration(
-          otherAccount.address,
+          otherAccount,
           (await time.latest()) + 1000
         );
 
@@ -364,10 +361,9 @@ describe("Governor Bravo", function () {
           [governorBravo],
           [0],
           [
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             (
-              await governorBravo._setPendingAdmin.populateTransaction(
-                owner.address
-              )
+              await governorBravo._setPendingAdmin.populateTransaction(owner)
             ).data!,
           ],
           "Steal governance"
@@ -423,9 +419,7 @@ describe("Governor Bravo", function () {
 
   describe("Execute", function () {
     it("Happy Path", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
-      const tx = { to: await governorBravo.timelock(), value: 1000 };
-      await owner.sendTransaction(tx);
+      const { governorBravo } = await loadFixture(deployFixtures);
       const proposalId = await proposeAndQueue(governorBravo);
 
       const timelockAddress = await governorBravo.timelock();
@@ -437,9 +431,7 @@ describe("Governor Bravo", function () {
     });
 
     it("Error: not queued", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
-      const tx = { to: await governorBravo.timelock(), value: 1000 };
-      await owner.sendTransaction(tx);
+      const { governorBravo } = await loadFixture(deployFixtures);
       const proposalId = await propose(governorBravo);
 
       await expect(governorBravo.execute(proposalId)).to.be.revertedWith(
@@ -462,7 +454,7 @@ describe("Governor Bravo", function () {
       );
       const proposalId = await proposeAndPass(governorBravo);
 
-      await comp.delegate(otherAccount.address);
+      await comp.delegate(otherAccount);
       await governorBravo.connect(otherAccount).cancel(proposalId);
     });
 
@@ -481,7 +473,7 @@ describe("Governor Bravo", function () {
       await owner.sendTransaction(tx);
       const proposalId = await proposeAndQueue(
         governorBravo,
-        [owner.address],
+        [owner],
         [1],
         ["0x"],
         "Will be executed"
@@ -505,22 +497,22 @@ describe("Governor Bravo", function () {
         );
 
         await governorBravo._setWhitelistAccountExpiration(
-          otherAccount.address,
+          otherAccount,
           (await time.latest()) + 1000
         );
         const proposalId = await propose(governorBravo.connect(otherAccount));
 
-        await governorBravo._setWhitelistGuardian(owner.address);
+        await governorBravo._setWhitelistGuardian(owner);
         await governorBravo.cancel(proposalId);
       });
 
       it("Error: whitelisted proposer", async function () {
-        const { governorBravo, owner, otherAccount } = await loadFixture(
+        const { governorBravo, otherAccount } = await loadFixture(
           deployFixtures
         );
 
         await governorBravo._setWhitelistAccountExpiration(
-          otherAccount.address,
+          otherAccount,
           (await time.latest()) + 1000
         );
         const proposalId = await propose(governorBravo.connect(otherAccount));
@@ -536,17 +528,17 @@ describe("Governor Bravo", function () {
         );
 
         await governorBravo._setWhitelistAccountExpiration(
-          otherAccount.address,
+          otherAccount,
           (await time.latest()) + 1000
         );
         const proposalId = await propose(governorBravo.connect(otherAccount));
         await comp.transfer(
-          otherAccount.address,
+          otherAccount,
           BigInt("100000") * BigInt("10") ** BigInt("18")
         );
-        await comp.connect(otherAccount).delegate(otherAccount.address);
+        await comp.connect(otherAccount).delegate(otherAccount);
 
-        await governorBravo._setWhitelistGuardian(owner.address);
+        await governorBravo._setWhitelistGuardian(owner);
         await expect(governorBravo.cancel(proposalId)).to.be.revertedWith(
           "GovernorBravo::cancel: whitelisted proposer"
         );
@@ -681,8 +673,223 @@ describe("Governor Bravo", function () {
     const proposalId = await propose(governorBravo);
 
     await governorBravo.castVote(proposalId, 2);
-    expect(
-      await governorBravo.getReceipt(proposalId, owner.address)
-    ).to.deep.equal([true, 2, BigInt("10000000000000000000000000")]);
+    expect(await governorBravo.getReceipt(proposalId, owner)).to.deep.equal([
+      true,
+      2,
+      BigInt("10000000000000000000000000"),
+    ]);
+  });
+
+  describe("State", async function () {
+    it("Canceled", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await propose(governorBravo);
+
+      await governorBravo.cancel(proposalId);
+
+      expect(await governorBravo.state(proposalId)).to.equal(
+        ProposalState.Canceled
+      );
+    });
+
+    it("Pending", async function () {
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      await governorBravo.propose([owner], [0], [""], ["0x"], "Test Proposal");
+
+      expect(await governorBravo.state(2)).to.equal(ProposalState.Pending);
+    });
+
+    it("Active", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await propose(governorBravo);
+
+      expect(await governorBravo.state(proposalId)).to.equal(
+        ProposalState.Active
+      );
+    });
+
+    it("Defeated: quorum", async function () {
+      const { governorBravo, comp, otherAccount } = await loadFixture(
+        deployFixtures
+      );
+      await comp.transfer(otherAccount, BigInt("100000"));
+      await comp.connect(otherAccount).delegate(otherAccount);
+
+      const proposalId = await propose(governorBravo);
+      await governorBravo.connect(otherAccount).castVote(proposalId, 1);
+      await mine(await governorBravo.votingPeriod());
+
+      expect(await governorBravo.state(proposalId)).to.equal(
+        ProposalState.Defeated
+      );
+    });
+
+    it("Defeated: against", async function () {
+      const { governorBravo, comp, otherAccount } = await loadFixture(
+        deployFixtures
+      );
+      await comp.transfer(
+        otherAccount,
+        BigInt("400000") * BigInt("10") ** BigInt("18") // quorum
+      );
+      await comp.connect(otherAccount).delegate(otherAccount);
+
+      const proposalId = await propose(governorBravo);
+      await governorBravo.connect(otherAccount).castVote(proposalId, 1);
+      await governorBravo.castVote(proposalId, 0);
+      await mine(await governorBravo.votingPeriod());
+
+      expect(await governorBravo.state(proposalId)).to.equal(
+        ProposalState.Defeated
+      );
+    });
+
+    it("Error: invalid state", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      await expect(governorBravo.state(1)).to.be.revertedWith(
+        "GovernorBravo::state: invalid proposal id"
+      );
+    });
+
+    it("Succeeded", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await proposeAndPass(governorBravo);
+
+      expect(await governorBravo.state(proposalId)).to.equal(
+        ProposalState.Succeeded
+      );
+    });
+
+    it("Executed", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await proposeAndQueue(governorBravo);
+
+      const timelockAddress = await governorBravo.timelock();
+      const timelock = await ethers.getContractAt("Timelock", timelockAddress);
+
+      await time.increase(await timelock.delay());
+
+      await governorBravo.execute(proposalId);
+      expect(await governorBravo.state(proposalId)).to.equal(
+        ProposalState.Executed
+      );
+    });
+
+    it("Expired", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await proposeAndQueue(governorBravo);
+
+      const timelockAddress = await governorBravo.timelock();
+      const timelock = await ethers.getContractAt("Timelock", timelockAddress);
+
+      await time.increase(
+        (await timelock.GRACE_PERIOD()) + (await timelock.delay())
+      );
+
+      expect(await governorBravo.state(proposalId)).to.equal(
+        ProposalState.Expired
+      );
+    });
+
+    it("Queued", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await proposeAndQueue(governorBravo);
+
+      expect(await governorBravo.state(proposalId)).to.equal(
+        ProposalState.Queued
+      );
+    });
+  });
+
+  describe("Admin Functions", function () {
+    describe("Set Voting Delay", function () {
+      it("Admin only", async function () {
+        const { governorBravo, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        await expect(
+          governorBravo.connect(otherAccount)._setVotingDelay(2)
+        ).to.be.revertedWith("GovernorBravo::_setVotingDelay: admin only");
+      });
+
+      it("Invalid voting delay", async function () {
+        const { governorBravo } = await loadFixture(deployFixtures);
+        await expect(governorBravo._setVotingDelay(0)).to.be.revertedWith(
+          "GovernorBravo::_setVotingDelay: invalid voting delay"
+        );
+        await expect(governorBravo._setVotingDelay(40321)).to.be.revertedWith(
+          "GovernorBravo::_setVotingDelay: invalid voting delay"
+        );
+      });
+
+      it("Happy Path", async function () {
+        const { governorBravo } = await loadFixture(deployFixtures);
+        await expect(governorBravo._setVotingDelay(2))
+          .to.emit(governorBravo, "VotingDelaySet")
+          .withArgs(100, 2);
+      });
+    });
+
+    describe("Set Voting Period", function () {
+      it("Admin only", async function () {
+        const { governorBravo, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        await expect(
+          governorBravo.connect(otherAccount)._setVotingPeriod(2)
+        ).to.be.revertedWith("GovernorBravo::_setVotingPeriod: admin only");
+      });
+
+      it("Invalid voting period", async function () {
+        const { governorBravo } = await loadFixture(deployFixtures);
+        await expect(governorBravo._setVotingPeriod(5759)).to.be.revertedWith(
+          "GovernorBravo::_setVotingPeriod: invalid voting period"
+        );
+        await expect(governorBravo._setVotingPeriod(80641)).to.be.revertedWith(
+          "GovernorBravo::_setVotingPeriod: invalid voting period"
+        );
+      });
+
+      it("Happy Path", async function () {
+        const { governorBravo } = await loadFixture(deployFixtures);
+        await expect(governorBravo._setVotingPeriod(5761))
+          .to.emit(governorBravo, "VotingPeriodSet")
+          .withArgs(5760, 5761);
+      });
+    });
+
+    describe("Set Proposal Threshold", function () {
+      it("Admin only", async function () {
+        const { governorBravo, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        await expect(
+          governorBravo.connect(otherAccount)._setProposalThreshold(2)
+        ).to.be.revertedWith(
+          "GovernorBravo::_setProposalThreshold: admin only"
+        );
+      });
+
+      it("Invalid proposal threshold", async function () {
+        const { governorBravo } = await loadFixture(deployFixtures);
+        await expect(
+          governorBravo._setProposalThreshold(1000)
+        ).to.be.revertedWith(
+          "GovernorBravo::_setProposalThreshold: invalid proposal threshold"
+        );
+        await expect(
+          governorBravo._setProposalThreshold(100001n * 10n ** 18n)
+        ).to.be.revertedWith(
+          "GovernorBravo::_setProposalThreshold: invalid proposal threshold"
+        );
+      });
+
+      it("Happy Path", async function () {
+        const { governorBravo } = await loadFixture(deployFixtures);
+        await expect(governorBravo._setProposalThreshold(1001n * 10n ** 18n))
+          .to.emit(governorBravo, "ProposalThresholdSet")
+          .withArgs(1000n * 10n ** 18n, 1001n * 10n ** 18n);
+      });
+    });
   });
 });
