@@ -14,19 +14,13 @@ import {
  */
 export async function propose(
   governor: GovernorAlpha | GovernorBravoDelegate,
-  targets: (string | Addressable)[],
-  values: BigNumberish[],
-  callDatas: string[],
-  description: string
+  targets: (string | Addressable)[] = [ethers.ZeroAddress],
+  values: BigNumberish[] = [0],
+  callDatas: string[] = ["0x"],
+  description: string = "Test Proposal"
 ): Promise<bigint> {
-  const updateTargets = targets.map(async (m) => {
-    if (typeof m === "string") {
-      return m;
-    }
-    return await m.getAddress();
-  });
   const tx = await governor.propose(
-    updateTargets,
+    targets,
     values,
     Array(values.length).fill(""),
     callDatas,
@@ -40,10 +34,10 @@ export async function propose(
 
 export async function proposeAndPass(
   governor: GovernorBravoDelegate,
-  targets: (string | Addressable)[],
-  values: BigNumberish[],
-  callDatas: string[],
-  description: string
+  targets: (string | Addressable)[] = [ethers.ZeroAddress],
+  values: BigNumberish[] = [0],
+  callDatas: string[] = ["0x"],
+  description: string = "Test Proposal"
 ): Promise<bigint> {
   const proposalId = await propose(
     governor,
@@ -61,10 +55,10 @@ export async function proposeAndPass(
 
 export async function proposeAndQueue(
   governor: GovernorBravoDelegate,
-  targets: (string | Addressable)[],
-  values: BigNumberish[],
-  callDatas: string[],
-  description: string
+  targets: (string | Addressable)[] = [ethers.ZeroAddress],
+  values: BigNumberish[] = [0],
+  callDatas: string[] = ["0x"],
+  description: string = "Test Proposal"
 ): Promise<bigint> {
   const proposalId = await proposeAndPass(
     governor,
@@ -159,4 +153,24 @@ export async function setupGovernorBravo(
   await governorBravo._initiate(governorAlpha.getAddress());
 
   return { governorBravo };
+}
+
+export async function getTypedDomain(
+  address: Addressable,
+  chainId: BigInt
+) {
+  return {
+    name: "Compound Governor Bravo",
+    chainId: chainId.toString(),
+    verifyingContract: await address.getAddress(),
+  };
+}
+
+export function getVoteTypes() {
+  return {
+    Ballot: [
+      { name: "proposalId", type: "uint256" },
+      { name: "support", type: "uint8" },
+    ],
+  };
 }

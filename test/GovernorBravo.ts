@@ -1,4 +1,8 @@
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+  time,
+  mine,
+} from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import {
@@ -7,6 +11,8 @@ import {
   propose,
   proposeAndPass,
   proposeAndQueue,
+  getTypedDomain,
+  getVoteTypes,
 } from "./governanceHelpers";
 import { GovernorBravoDelegate } from "../typechain-types";
 
@@ -218,35 +224,11 @@ describe("Governor Bravo", function () {
     it("Happy Path", async function () {
       const { governorBravo, owner } = await loadFixture(deployFixtures);
 
-      let proposalId = await propose(
-        governorBravo,
-        [governorBravo],
-        [0],
-        [
-          (
-            await governorBravo._setPendingAdmin.populateTransaction(
-              owner.address
-            )
-          ).data!,
-        ],
-        "Steal governance"
-      );
+      let proposalId = await propose(governorBravo);
 
       await governorBravo.cancel(proposalId);
 
-      proposalId = await propose(
-        governorBravo,
-        [governorBravo],
-        [0],
-        [
-          (
-            await governorBravo._setPendingAdmin.populateTransaction(
-              owner.address
-            )
-          ).data!,
-        ],
-        "Steal governance"
-      );
+      proposalId = await propose(governorBravo);
     });
 
     it("Error: arity Mismatch", async function () {
@@ -277,19 +259,7 @@ describe("Governor Bravo", function () {
       );
 
       await expect(
-        propose(
-          governorBravo.connect(otherAccount),
-          [governorBravo],
-          [0],
-          [
-            (
-              await governorBravo._setPendingAdmin.populateTransaction(
-                owner.address
-              )
-            ).data!,
-          ],
-          "Steal governance"
-        )
+        propose(governorBravo.connect(otherAccount))
       ).to.be.revertedWith(
         "GovernorBravo::propose: proposer votes below proposal threshold"
       );
@@ -298,35 +268,9 @@ describe("Governor Bravo", function () {
     it("Error: active proposal", async function () {
       const { governorBravo, owner } = await loadFixture(deployFixtures);
 
-      await propose(
-        governorBravo,
-        [governorBravo],
-        [0],
-        [
-          (
-            await governorBravo._setPendingAdmin.populateTransaction(
-              owner.address
-            )
-          ).data!,
-        ],
-        "Steal governance"
-      );
+      await propose(governorBravo);
 
-      await expect(
-        propose(
-          governorBravo,
-          [governorBravo],
-          [0],
-          [
-            (
-              await governorBravo._setPendingAdmin.populateTransaction(
-                owner.address
-              )
-            ).data!,
-          ],
-          "Steal governance"
-        )
-      ).to.be.revertedWith(
+      await expect(propose(governorBravo)).to.be.revertedWith(
         "GovernorBravo::propose: one live proposal per proposer, found an already active proposal"
       );
     });
@@ -334,6 +278,7 @@ describe("Governor Bravo", function () {
     it("Error: pending proposal", async function () {
       const { governorBravo, owner } = await loadFixture(deployFixtures);
 
+      // Need to stay in the pending state
       await governorBravo.propose(
         [await governorBravo.getAddress()],
         [0],
@@ -348,21 +293,7 @@ describe("Governor Bravo", function () {
         "Steal governance"
       );
 
-      await expect(
-        propose(
-          governorBravo,
-          [governorBravo],
-          [0],
-          [
-            (
-              await governorBravo._setPendingAdmin.populateTransaction(
-                owner.address
-              )
-            ).data!,
-          ],
-          "Steal governance"
-        )
-      ).to.be.revertedWith(
+      await expect(propose(governorBravo)).to.be.revertedWith(
         "GovernorBravo::propose: one live proposal per proposer, found an already pending proposal"
       );
     });
@@ -375,7 +306,7 @@ describe("Governor Bravo", function () {
       ).to.be.revertedWith("GovernorBravo::propose: must provide actions");
     });
 
-    it("Error: below max operations", async function () {
+    it("Error: max operations", async function () {
       const { governorBravo } = await loadFixture(deployFixtures);
       await expect(
         propose(
@@ -495,13 +426,7 @@ describe("Governor Bravo", function () {
       const { governorBravo, owner } = await loadFixture(deployFixtures);
       const tx = { to: await governorBravo.timelock(), value: 1000 };
       await owner.sendTransaction(tx);
-      const proposalId = await proposeAndQueue(
-        governorBravo,
-        [owner.address],
-        [1],
-        ["0x"],
-        "Will be executed"
-      );
+      const proposalId = await proposeAndQueue(governorBravo);
 
       const timelockAddress = await governorBravo.timelock();
       const timelock = await ethers.getContractAt("Timelock", timelockAddress);
@@ -515,13 +440,7 @@ describe("Governor Bravo", function () {
       const { governorBravo, owner } = await loadFixture(deployFixtures);
       const tx = { to: await governorBravo.timelock(), value: 1000 };
       await owner.sendTransaction(tx);
-      const proposalId = await propose(
-        governorBravo,
-        [owner.address],
-        [1],
-        ["0x"],
-        "Not queued"
-      );
+      const proposalId = await propose(governorBravo);
 
       await expect(governorBravo.execute(proposalId)).to.be.revertedWith(
         "GovernorBravo::execute: proposal can only be executed if it is queued"
@@ -532,13 +451,7 @@ describe("Governor Bravo", function () {
   describe("Cancel", function () {
     it("Happy Path: proposer cancel", async function () {
       const { governorBravo } = await loadFixture(deployFixtures);
-      const proposalId = await proposeAndPass(
-        governorBravo,
-        [governorBravo],
-        [1],
-        ["0x"],
-        "Will queue"
-      );
+      const proposalId = await proposeAndPass(governorBravo);
 
       await governorBravo.cancel(proposalId);
     });
@@ -547,13 +460,7 @@ describe("Governor Bravo", function () {
       const { governorBravo, comp, otherAccount } = await loadFixture(
         deployFixtures
       );
-      const proposalId = await proposeAndPass(
-        governorBravo,
-        [governorBravo],
-        [1],
-        ["0x"],
-        "Will queue"
-      );
+      const proposalId = await proposeAndPass(governorBravo);
 
       await comp.delegate(otherAccount.address);
       await governorBravo.connect(otherAccount).cancel(proposalId);
@@ -561,13 +468,7 @@ describe("Governor Bravo", function () {
 
     it("Error: above threshold", async function () {
       const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
-      const proposalId = await proposeAndPass(
-        governorBravo,
-        [governorBravo],
-        [1],
-        ["0x"],
-        "Will queue"
-      );
+      const proposalId = await proposeAndPass(governorBravo);
 
       await expect(
         governorBravo.connect(otherAccount).cancel(proposalId)
@@ -607,13 +508,7 @@ describe("Governor Bravo", function () {
           otherAccount.address,
           (await time.latest()) + 1000
         );
-        const proposalId = await propose(
-          governorBravo.connect(otherAccount),
-          [owner.address],
-          [1],
-          ["0x"],
-          "Whitelist proposal"
-        );
+        const proposalId = await propose(governorBravo.connect(otherAccount));
 
         await governorBravo._setWhitelistGuardian(owner.address);
         await governorBravo.cancel(proposalId);
@@ -628,13 +523,7 @@ describe("Governor Bravo", function () {
           otherAccount.address,
           (await time.latest()) + 1000
         );
-        const proposalId = await propose(
-          governorBravo.connect(otherAccount),
-          [owner.address],
-          [1],
-          ["0x"],
-          "Whitelist proposal"
-        );
+        const proposalId = await propose(governorBravo.connect(otherAccount));
 
         await expect(governorBravo.cancel(proposalId)).to.be.revertedWith(
           "GovernorBravo::cancel: whitelisted proposer"
@@ -650,13 +539,7 @@ describe("Governor Bravo", function () {
           otherAccount.address,
           (await time.latest()) + 1000
         );
-        const proposalId = await propose(
-          governorBravo.connect(otherAccount),
-          [owner.address],
-          [1],
-          ["0x"],
-          "Whitelist proposal"
-        );
+        const proposalId = await propose(governorBravo.connect(otherAccount));
         await comp.transfer(
           otherAccount.address,
           BigInt("100000") * BigInt("10") ** BigInt("18")
@@ -673,23 +556,105 @@ describe("Governor Bravo", function () {
 
   describe("Vote", function () {
     it("With Reason", async function () {
-      const { governorBravo } = await loadFixture(deployFixtures);
-      const proposalId = await propose(
-        governorBravo,
-        [governorBravo],
-        [0],
-        [
-          ethers.AbiCoder.defaultAbiCoder().encode(
-            ["string"],
-            ["encoded value"]
-          ),
-        ],
-        "My proposal"
-      );
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const proposalId = await propose(governorBravo);
 
       await expect(
         governorBravo.castVoteWithReason(proposalId, 0, "We need more info")
-      ).to.emit(governorBravo, "VoteCast");
+      )
+        .to.emit(governorBravo, "VoteCast")
+        .withArgs(
+          owner.address,
+          proposalId,
+          0,
+          BigInt("10000000000000000000000000"),
+          "We need more info"
+        );
+    });
+
+    it("Error: double vote", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await propose(governorBravo);
+
+      await governorBravo.castVote(proposalId, 2);
+      expect((await governorBravo.proposals(proposalId)).abstainVotes).to.equal(
+        "10000000000000000000000000"
+      );
+      await expect(governorBravo.castVote(proposalId, 1)).to.be.revertedWith(
+        "GovernorBravo::castVoteInternal: voter already voted"
+      );
+    });
+
+    it("Error: voting closed", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await propose(governorBravo);
+
+      await mine(await governorBravo.votingPeriod());
+      await expect(governorBravo.castVote(proposalId, 1)).to.be.revertedWith(
+        "GovernorBravo::castVoteInternal: voting is closed"
+      );
+    });
+
+    it("Error: invalid vote type", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const proposalId = await propose(governorBravo);
+      await expect(governorBravo.castVote(proposalId, 3)).to.be.revertedWith(
+        "GovernorBravo::castVoteInternal: invalid vote type"
+      );
+    });
+
+    it("By Sig", async function () {
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const domain = await getTypedDomain(
+        governorBravo,
+        (
+          await ethers.provider.getNetwork()
+        ).chainId
+      );
+
+      const proposalId = await propose(governorBravo);
+
+      const sig = await owner.signTypedData(domain, getVoteTypes(), {
+        proposalId,
+        support: 1,
+      });
+
+      const r = "0x" + sig.substring(2, 66);
+      const s = "0x" + sig.substring(66, 130);
+      const v = "0x" + sig.substring(130, 132);
+      await expect(governorBravo.castVoteBySig(proposalId, 1, v, r, s))
+        .to.emit(governorBravo, "VoteCast")
+        .withArgs(
+          owner.address,
+          proposalId,
+          1,
+          BigInt("10000000000000000000000000"),
+          ""
+        );
+    });
+
+    it("Error: invalid sig", async function () {
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const domain = await getTypedDomain(
+        governorBravo,
+        (
+          await ethers.provider.getNetwork()
+        ).chainId
+      );
+
+      const proposalId = await propose(governorBravo);
+
+      const sig = await owner.signTypedData(domain, getVoteTypes(), {
+        proposalId,
+        support: 1,
+      });
+
+      const r = "0x" + sig.substring(2, 66);
+      const s = "0x" + sig.substring(66, 130);
+      const v = "0x00";
+      await expect(
+        governorBravo.castVoteBySig(proposalId, 1, v, r, s)
+      ).to.be.revertedWith("GovernorBravo::castVoteBySig: invalid signature");
     });
   });
 
@@ -713,13 +678,7 @@ describe("Governor Bravo", function () {
 
   it("Get Receipt", async function () {
     const { governorBravo, owner } = await loadFixture(deployFixtures);
-    const proposalId = await propose(
-      governorBravo,
-      [governorBravo],
-      [0],
-      [ethers.AbiCoder.defaultAbiCoder().encode(["string"], ["encoded value"])],
-      "My proposal"
-    );
+    const proposalId = await propose(governorBravo);
 
     await governorBravo.castVote(proposalId, 2);
     expect(
