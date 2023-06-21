@@ -16,7 +16,10 @@ import {
   getVoteTypes,
   ProposalState,
 } from "./governanceHelpers";
-import { GovernorBravoDelegate } from "../typechain-types";
+import {
+  GovernorBravoDelegate,
+  GovernorBravoDelegator,
+} from "../typechain-types";
 
 describe("Governor Bravo", function () {
   async function deployFixtures() {
@@ -1035,6 +1038,54 @@ describe("Governor Bravo", function () {
       )
         .to.emit(governorBravo, "WhitelistAccountExpirationSet")
         .withArgs(otherAccount.address, 0);
+    });
+  });
+
+  describe("Set Implementation", function () {
+    it("Admin only", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      const GovernorBravoDelegator = await ethers.getContractFactory(
+        "GovernorBravoDelegator"
+      );
+      const governorBravoDelegator = GovernorBravoDelegator.attach(
+        await governorBravo.getAddress()
+      ) as GovernorBravoDelegator;
+      await expect(
+        governorBravoDelegator
+          .connect(otherAccount)
+          ._setImplementation(otherAccount)
+      ).to.be.revertedWith(
+        "GovernorBravoDelegator::_setImplementation: admin only"
+      );
+    });
+
+    it("Invalid address", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      const GovernorBravoDelegator = await ethers.getContractFactory(
+        "GovernorBravoDelegator"
+      );
+      const governorBravoDelegator = GovernorBravoDelegator.attach(
+        await governorBravo.getAddress()
+      ) as GovernorBravoDelegator;
+      await expect(
+        governorBravoDelegator._setImplementation(ethers.ZeroAddress)
+      ).to.be.revertedWith(
+        "GovernorBravoDelegator::_setImplementation: invalid implementation address"
+      );
+    });
+
+    it("Happy path", async function () {
+      const { governorBravo, owner } = await loadFixture(deployFixtures);
+      const GovernorBravoDelegator = await ethers.getContractFactory(
+        "GovernorBravoDelegator"
+      );
+      const governorBravoDelegator = GovernorBravoDelegator.attach(
+        await governorBravo.getAddress()
+      ) as GovernorBravoDelegator;
+      const oldImpl = await governorBravoDelegator.implementation();
+      await expect(governorBravoDelegator._setImplementation(owner.address))
+        .to.emit(governorBravo, "NewImplementation")
+        .withArgs(oldImpl, owner.address);
     });
   });
 });
