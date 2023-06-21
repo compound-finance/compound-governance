@@ -1,3 +1,3 @@
 module.exports = {
-  skipFiles: ["GovernorAlpha.sol", "SafeMath.sol", "Timelock.sol"],
+  skipFiles: ["GovernorAlpha.sol", "SafeMath.sol"],
 };
