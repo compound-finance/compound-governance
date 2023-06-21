@@ -2,6 +2,7 @@ import {
   loadFixture,
   time,
   mine,
+  impersonateAccount,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
@@ -218,6 +219,62 @@ describe("Governor Bravo", function () {
       ).to.be.revertedWith(
         "GovernorBravo::initialize: invalid timelock address"
       );
+    });
+  });
+
+  describe("Initiate", function () {
+    it("Initiate Twice", async function () {
+      const { governorBravo } = await loadFixture(deployFixtures);
+      await expect(governorBravo._initiate(governorBravo)).to.be.revertedWith(
+        "GovernorBravo::_initiate: can only initiate once"
+      );
+    });
+
+    it("Admin only", async function () {
+      const [owner, otherAccount] = await ethers.getSigners();
+      const { governorAlpha, timelock, comp } = await setupGovernorAlpha();
+
+      const GovernorBravoDelegator = await ethers.getContractFactory(
+        "GovernorBravoDelegator"
+      );
+      const GovernorBravoDelegate = await ethers.getContractFactory(
+        "GovernorBravoDelegate"
+      );
+
+      const governorBravoDelegate = await GovernorBravoDelegate.deploy();
+      let governorBravo: GovernorBravoDelegate =
+        (await GovernorBravoDelegator.deploy(
+          timelock,
+          comp,
+          owner,
+          governorBravoDelegate,
+          5760,
+          100,
+          1000n * 10n ** 18n
+        )) as unknown as GovernorBravoDelegate;
+      await comp.delegate(owner);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const txData = (
+        await timelock.setPendingAdmin.populateTransaction(governorBravo)
+      ).data!;
+      await propose(
+        governorAlpha,
+        [timelock],
+        [0n],
+        [txData],
+        "Transfer admin for bravo"
+      );
+      await governorAlpha.castVote(await governorAlpha.votingDelay(), true);
+      await mine(await governorAlpha.votingPeriod());
+      await governorAlpha.queue(1);
+      await time.increase(await timelock.MINIMUM_DELAY());
+      await governorAlpha.execute(1);
+      governorBravo = GovernorBravoDelegate.attach(
+        await governorBravo.getAddress()
+      ) as GovernorBravoDelegate;
+      await expect(
+        governorBravo.connect(otherAccount)._initiate(governorAlpha)
+      ).to.be.revertedWith("GovernorBravo::_initiate: admin only");
     });
   });
 
@@ -890,6 +947,94 @@ describe("Governor Bravo", function () {
           .to.emit(governorBravo, "ProposalThresholdSet")
           .withArgs(1000n * 10n ** 18n, 1001n * 10n ** 18n);
       });
+    });
+
+    describe("Set Pending Admin", function () {
+      it("Admin only", async function () {
+        const { governorBravo, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        await expect(
+          governorBravo.connect(otherAccount)._setPendingAdmin(otherAccount)
+        ).to.be.revertedWith("GovernorBravo:_setPendingAdmin: admin only");
+      });
+
+      it("Happy Path", async function () {
+        const { governorBravo, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        await expect(governorBravo._setPendingAdmin(otherAccount))
+          .to.emit(governorBravo, "NewPendingAdmin")
+          .withArgs(ethers.ZeroAddress, otherAccount.address);
+      });
+    });
+
+    describe("Accept Pending Admin", function () {
+      it("Invalid Address (zero address)", async function () {
+        const { governorBravo } = await loadFixture(deployFixtures);
+        await impersonateAccount(ethers.ZeroAddress);
+        await expect(governorBravo._acceptAdmin()).to.be.revertedWith(
+          "GovernorBravo:_acceptAdmin: pending admin only"
+        );
+      });
+
+      it("Pending Admin Only", async function () {
+        const { governorBravo, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        await expect(
+          governorBravo.connect(otherAccount)._acceptAdmin()
+        ).to.be.revertedWith("GovernorBravo:_acceptAdmin: pending admin only");
+      });
+
+      it("Happy Path", async function () {
+        const { governorBravo, otherAccount, owner } = await loadFixture(
+          deployFixtures
+        );
+        await governorBravo._setPendingAdmin(otherAccount);
+        await expect(governorBravo.connect(otherAccount)._acceptAdmin())
+          .to.emit(governorBravo, "NewAdmin")
+          .withArgs(owner.address, otherAccount.address);
+      });
+    });
+  });
+
+  describe("Whitelist", function () {
+    it("Set whitelist guardian: admin only", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      await expect(
+        governorBravo.connect(otherAccount)._setWhitelistGuardian(otherAccount)
+      ).to.be.revertedWith("GovernorBravo::_setWhitelistGuardian: admin only");
+    });
+
+    it("Set whitelist guardian: happy path", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      await expect(governorBravo._setWhitelistGuardian(otherAccount))
+        .to.emit(governorBravo, "WhitelistGuardianSet")
+        .withArgs(ethers.ZeroAddress, otherAccount.address);
+    });
+
+    it("Set whitelist account expiration: admin only", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      await expect(
+        governorBravo
+          .connect(otherAccount)
+          ._setWhitelistAccountExpiration(otherAccount, 0)
+      ).to.be.revertedWith(
+        "GovernorBravo::_setWhitelistAccountExpiration: admin only"
+      );
+    });
+
+    it("Set whitelist account expiration: happy path", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      await governorBravo._setWhitelistGuardian(otherAccount);
+      await expect(
+        governorBravo
+          .connect(otherAccount)
+          ._setWhitelistAccountExpiration(otherAccount, 0)
+      )
+        .to.emit(governorBravo, "WhitelistAccountExpirationSet")
+        .withArgs(otherAccount.address, 0);
     });
   });
 });
