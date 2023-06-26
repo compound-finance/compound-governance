@@ -7,7 +7,7 @@ import {
   mine,
 } from "@nomicfoundation/hardhat-network-helpers";
 
-describe.only("Comp", function () {
+describe("Comp", function () {
   async function deployFixtures() {
     const [owner, otherAccount] = await ethers.getSigners();
     const Comp = await ethers.getContractFactory("Comp");
