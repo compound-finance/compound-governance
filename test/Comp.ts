@@ -67,7 +67,7 @@ describe("Comp", function () {
     });
   });
 
-  describe("TransferFrom", function () {
+  describe("Transfer From", function () {
     it("happy path", async function () {
       const { owner, otherAccount, comp } = await loadFixture(deployFixtures);
       await comp.approve(otherAccount, 100);
@@ -81,7 +81,7 @@ describe("Comp", function () {
       expect(await comp.allowance(owner, otherAccount)).to.eq(0);
     });
 
-    it("error: over uint96", async function () {
+    it("Error: over uint96", async function () {
       const { owner, otherAccount, comp } = await loadFixture(deployFixtures);
       await expect(
         comp
@@ -91,8 +91,8 @@ describe("Comp", function () {
     });
   });
 
-  describe("_transferTokens", function () {
-    it("error: from zero address", async function () {
+  describe("Transfer Tokens", function () {
+    it("Error: from zero address", async function () {
       const { otherAccount, comp } = await loadFixture(deployFixtures);
       await expect(
         comp.transferFrom(ethers.ZeroAddress, otherAccount, 0)
@@ -290,12 +290,17 @@ describe("Comp", function () {
       await comp.transfer(otherAccount, 100);
       const blockNumber2 = await ethers.provider.getBlockNumber();
       await mine();
+      await comp.transfer(otherAccount, 200);
+      const blockNumber3 = await ethers.provider.getBlockNumber();
+      await mine();
 
+      expect(await comp.getPriorVotes(otherAccount, blockNumber1 - 1)).to.eq(0);
       expect(await comp.getPriorVotes(otherAccount, blockNumber1)).to.eq(0);
       expect(await comp.getPriorVotes(otherAccount, blockNumber1 + 5)).to.eq(
         100
       );
       expect(await comp.getPriorVotes(otherAccount, blockNumber2)).to.eq(200);
+      expect(await comp.getPriorVotes(otherAccount, blockNumber3)).to.eq(400);
     });
 
     it("Happy path: new account", async function () {
@@ -337,6 +342,68 @@ describe("Comp", function () {
       await comp.delegate(owner);
       await comp.delegate(ethers.ZeroAddress);
       expect(await comp.getCurrentVotes(owner)).to.eq(0);
+    });
+
+    it("Move delegates twice in one block", async function () {
+      const { comp, owner, otherAccount } = await loadFixture(deployFixtures);
+      const Multicall = await ethers.getContractFactory("Multicall");
+      const multicall = await Multicall.deploy();
+
+      await comp.transfer(otherAccount, 100);
+
+      const domain = await getTypedDomainComp(
+        comp,
+        (
+          await ethers.provider.getNetwork()
+        ).chainId
+      );
+      const delegationTypes = await getDelegationTypes();
+
+      const expiry = (await time.latest()) + 100;
+      const sig = await owner.signTypedData(domain, delegationTypes, {
+        delegatee: otherAccount.address,
+        nonce: 0,
+        expiry,
+      });
+      const r = "0x" + sig.substring(2, 66);
+      const s = "0x" + sig.substring(66, 130);
+      const v = "0x" + sig.substring(130, 132);
+
+      const sig2 = await otherAccount.signTypedData(domain, delegationTypes, {
+        delegatee: otherAccount.address,
+        nonce: 0,
+        expiry,
+      });
+      const r2 = "0x" + sig2.substring(2, 66);
+      const s2 = "0x" + sig2.substring(66, 130);
+      const v2 = "0x" + sig2.substring(130, 132);
+
+      const calldata1 = (
+        await comp.delegateBySig.populateTransaction(
+          otherAccount.address,
+          0,
+          expiry,
+          v,
+          r,
+          s
+        )
+      ).data;
+
+      const calldata2 = (
+        await comp.delegateBySig.populateTransaction(
+          otherAccount.address,
+          0,
+          expiry,
+          v2,
+          r2,
+          s2
+        )
+      ).data;
+
+      await multicall.aggregate([
+        { target: await comp.getAddress(), callData: calldata1 },
+        { target: await comp.getAddress(), callData: calldata2 },
+      ]);
     });
   });
 });
