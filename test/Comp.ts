@@ -296,10 +296,8 @@ describe("Comp", function () {
 
       expect(await comp.getPriorVotes(otherAccount, blockNumber1 - 1)).to.eq(0);
       expect(await comp.getPriorVotes(otherAccount, blockNumber1)).to.eq(0);
-      expect(await comp.getPriorVotes(otherAccount, blockNumber1 + 5)).to.eq(
-        100
-      );
       expect(await comp.getPriorVotes(otherAccount, blockNumber2)).to.eq(200);
+      expect(await comp.getPriorVotes(otherAccount, blockNumber3 - 1)).to.eq(200);
       expect(await comp.getPriorVotes(otherAccount, blockNumber3)).to.eq(400);
     });
 
