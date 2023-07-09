@@ -170,6 +170,15 @@ export function getVoteTypes() {
     ],
   };
 }
+export function getVoteWithReasonTypes() {
+  return {
+    Ballot: [
+      { name: "proposalId", type: "uint256" },
+      { name: "support", type: "uint8" },
+      { name: "reason", type: "string" },
+    ],
+  };
+}
 
 export async function getTypedDomainComp(
   address: Addressable,
@@ -190,6 +199,19 @@ export function getDelegationTypes() {
       { name: "expiry", type: "uint256" },
     ],
   };
+}
+
+export function getProposeTypes() {
+  return {
+    Proposal: [
+      { name: "targets", type: "address[]" },
+      { name: "values", type: "uint256[]" },
+      { name: "signatures", type: "string[]" },
+      { name: "calldatas", type: "bytes[]" },
+      { name: "description", type: "string" },
+      { name: "proposalId", type: "uint256" },
+    ],
+  }
 }
 
 export enum ProposalState {
