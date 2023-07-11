@@ -10,22 +10,22 @@ contract GovernorBravoDelegate is
     /// @notice The name of this contract
     string public constant name = "Compound Governor Bravo";
 
-    /// @notice The minimum setable proposal threshold
+    /// @notice The minimum settable proposal threshold
     uint public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Comp
 
-    /// @notice The maximum setable proposal threshold
+    /// @notice The maximum settable proposal threshold
     uint public constant MAX_PROPOSAL_THRESHOLD = 100000e18; //100,000 Comp
 
-    /// @notice The minimum setable voting period
+    /// @notice The minimum settable voting period
     uint public constant MIN_VOTING_PERIOD = 5760; // About 24 hours
 
-    /// @notice The max setable voting period
+    /// @notice The max settable voting period
     uint public constant MAX_VOTING_PERIOD = 80640; // About 2 weeks
 
-    /// @notice The min setable voting delay
+    /// @notice The min settable voting delay
     uint public constant MIN_VOTING_DELAY = 1;
 
-    /// @notice The max setable voting delay
+    /// @notice The max settable voting delay
     uint public constant MAX_VOTING_DELAY = 40320; // About 1 week
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
@@ -43,6 +43,16 @@ contract GovernorBravoDelegate is
     /// @notice The EIP-712 typehash for the ballot struct used by the contract
     bytes32 public constant BALLOT_TYPEHASH =
         keccak256("Ballot(uint256 proposalId,uint8 support)");
+
+    /// @notice The EIP-712 typehash for the ballot with reason struct used by the contract
+    bytes32 public constant BALLOT_WITH_REASON_TYPEHASH =
+        keccak256("Ballot(uint256 proposalId,uint8 support,string reason)");
+
+    /// @notice The EIP-712 typehash for the proposal struct used by the contract
+    bytes32 public constant PROPOSAL_TYPEHASH =
+        keccak256(
+            "Proposal(address[] targets,uint256[] values,string[] signatures,bytes[] calldatas,string description,uint256 proposalId)"
+        );
 
     /**
      * @notice Used to initialize the contract during delegator constructor
@@ -111,45 +121,140 @@ contract GovernorBravoDelegate is
         bytes[] memory calldatas,
         string memory description
     ) public returns (uint) {
+        return
+            proposeInternal(
+                msg.sender,
+                targets,
+                values,
+                signatures,
+                calldatas,
+                description
+            );
+    }
+
+    /**
+     * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold
+     * @param targets Target addresses for proposal calls
+     * @param values Eth values for proposal calls
+     * @param signatures Function signatures for proposal calls
+     * @param calldatas Calldatas for proposal calls
+     * @param description String description of the proposal
+     * @param proposalId The id of the proposal to propose (reverted if this isn't the next proposal id)
+     * @return Proposal id of new proposal
+     */
+    function proposeBySig(
+        address[] memory targets,
+        uint[] memory values,
+        string[] memory signatures,
+        bytes[] memory calldatas,
+        string memory description,
+        uint proposalId,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public returns (uint) {
+        require(proposalId == proposalCount + 1, "GovernorBravo::proposeBySig: invalid proposal id");
+        address signatory;
+        {
+            bytes32 domainSeparator = keccak256(
+                abi.encode(
+                    DOMAIN_TYPEHASH,
+                    keccak256(bytes(name)),
+                    getChainIdInternal(),
+                    address(this)
+                )
+            );
+
+            bytes32[] memory hashedCalldatas = new bytes32[](calldatas.length);
+            bytes32[] memory hashedSignatures = new bytes32[](
+                signatures.length
+            );
+            for (uint256 i = 0; i < calldatas.length; ++i) {
+                hashedCalldatas[i] = keccak256(calldatas[i]);
+            }
+            for (uint256 i = 0; i < signatures.length; ++i) {
+                hashedSignatures[i] = keccak256(bytes(signatures[i]));
+            }
+
+            bytes32 structHash = keccak256(
+                abi.encode(
+                    PROPOSAL_TYPEHASH,
+                    keccak256(abi.encodePacked(targets)),
+                    keccak256(abi.encodePacked(values)),
+                    keccak256(abi.encodePacked(hashedSignatures)),
+                    keccak256(abi.encodePacked(hashedCalldatas)),
+                    keccak256(bytes(description)),
+                    proposalId
+                )
+            );
+            bytes32 digest = keccak256(
+                abi.encodePacked("\x19\x01", domainSeparator, structHash)
+            );
+            signatory = ecrecover(digest, v, r, s);
+        }
+        require(
+            signatory != address(0),
+            "GovernorBravo::proposeBySig: invalid signature"
+        );
+
+        return
+            proposeInternal(
+                signatory,
+                targets,
+                values,
+                signatures,
+                calldatas,
+                description
+            );
+    }
+
+    function proposeInternal(
+        address proposer,
+        address[] memory targets,
+        uint[] memory values,
+        string[] memory signatures,
+        bytes[] memory calldatas,
+        string memory description
+    ) internal returns (uint) {
         // Reject proposals before initiating as Governor
         require(
             initialProposalId != 0,
-            "GovernorBravo::propose: Governor Bravo not active"
+            "GovernorBravo::proposeInternal: Governor Bravo not active"
         );
         // Allow addresses above proposal threshold and whitelisted addresses to propose
         require(
-            comp.getPriorVotes(msg.sender, block.number - 1) >
+            comp.getPriorVotes(proposer, block.number - 1) >
                 proposalThreshold ||
-                isWhitelisted(msg.sender),
-            "GovernorBravo::propose: proposer votes below proposal threshold"
+                isWhitelisted(proposer),
+            "GovernorBravo::proposeInternal: proposer votes below proposal threshold"
         );
         require(
             targets.length == values.length &&
                 targets.length == signatures.length &&
                 targets.length == calldatas.length,
-            "GovernorBravo::propose: proposal function information arity mismatch"
+            "GovernorBravo::proposeInternal: proposal function information arity mismatch"
         );
         require(
             targets.length != 0,
-            "GovernorBravo::propose: must provide actions"
+            "GovernorBravo::proposeInternal: must provide actions"
         );
         require(
             targets.length <= proposalMaxOperations,
-            "GovernorBravo::propose: too many actions"
+            "GovernorBravo::proposeInternal: too many actions"
         );
 
-        uint latestProposalId = latestProposalIds[msg.sender];
+        uint latestProposalId = latestProposalIds[proposer];
         if (latestProposalId != 0) {
             ProposalState proposersLatestProposalState = state(
                 latestProposalId
             );
             require(
                 proposersLatestProposalState != ProposalState.Active,
-                "GovernorBravo::propose: one live proposal per proposer, found an already active proposal"
+                "GovernorBravo::proposeInternal: one live proposal per proposer, found an already active proposal"
             );
             require(
                 proposersLatestProposalState != ProposalState.Pending,
-                "GovernorBravo::propose: one live proposal per proposer, found an already pending proposal"
+                "GovernorBravo::proposeInternal: one live proposal per proposer, found an already pending proposal"
             );
         }
 
@@ -162,10 +267,10 @@ contract GovernorBravoDelegate is
         // This should never happen but add a check in case.
         require(
             newProposal.id == 0,
-            "GovernorBravo::propose: ProposalID collsion"
+            "GovernorBravo::proposeInternal: ProposalID collision"
         );
         newProposal.id = newProposalID;
-        newProposal.proposer = msg.sender;
+        newProposal.proposer = proposer;
         newProposal.eta = 0;
         newProposal.targets = targets;
         newProposal.values = values;
@@ -183,7 +288,7 @@ contract GovernorBravoDelegate is
 
         emit ProposalCreated(
             newProposal.id,
-            msg.sender,
+            proposer,
             targets,
             values,
             signatures,
@@ -388,26 +493,6 @@ contract GovernorBravoDelegate is
     }
 
     /**
-     * @notice Cast a vote for a proposal with a reason
-     * @param proposalId The id of the proposal to vote on
-     * @param support The support value for the vote. 0=against, 1=for, 2=abstain
-     * @param reason The reason given for the vote by the voter
-     */
-    function castVoteWithReason(
-        uint proposalId,
-        uint8 support,
-        string calldata reason
-    ) external {
-        emit VoteCast(
-            msg.sender,
-            proposalId,
-            support,
-            castVoteInternal(msg.sender, proposalId, support),
-            reason
-        );
-    }
-
-    /**
      * @notice Cast a vote for a proposal by signature
      * @dev External function that accepts EIP-712 signatures for voting on proposals.
      */
@@ -443,6 +528,70 @@ contract GovernorBravoDelegate is
             support,
             castVoteInternal(signatory, proposalId, support),
             ""
+        );
+    }
+
+    /**
+     * @notice Cast a vote for a proposal with a reason
+     * @param proposalId The id of the proposal to vote on
+     * @param support The support value for the vote. 0=against, 1=for, 2=abstain
+     * @param reason The reason given for the vote by the voter
+     */
+    function castVoteWithReason(
+        uint proposalId,
+        uint8 support,
+        string calldata reason
+    ) external {
+        emit VoteCast(
+            msg.sender,
+            proposalId,
+            support,
+            castVoteInternal(msg.sender, proposalId, support),
+            reason
+        );
+    }
+
+    function castVoteWithReasonBySig(
+        uint proposalId,
+        uint8 support,
+        string calldata reason,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        address signatory;
+        {
+            bytes32 domainSeparator = keccak256(
+                abi.encode(
+                    DOMAIN_TYPEHASH,
+                    keccak256(bytes(name)),
+                    getChainIdInternal(),
+                    address(this)
+                )
+            );
+            bytes32 structHash = keccak256(
+                abi.encode(
+                    BALLOT_WITH_REASON_TYPEHASH,
+                    proposalId,
+                    support,
+                    keccak256(bytes(reason))
+                )
+            );
+            bytes32 digest = keccak256(
+                abi.encodePacked("\x19\x01", domainSeparator, structHash)
+            );
+            signatory = ecrecover(digest, v, r, s);
+        }
+        require(
+            signatory != address(0),
+            "GovernorBravo::castVoteWithReasonBySig: invalid signature"
+        );
+        emit VoteCast(
+            msg.sender,
+            proposalId,
+            support,
+            castVoteInternal(signatory, proposalId, support),
+            reason
         );
     }
 

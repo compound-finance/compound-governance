@@ -14,6 +14,8 @@ import {
   proposeAndQueue,
   getTypedDomain,
   getVoteTypes,
+  getVoteWithReasonTypes,
+  getProposeTypes,
   ProposalState,
 } from "./governanceHelpers";
 import {
@@ -309,7 +311,7 @@ describe("Governor Bravo", function () {
           "Steal governance"
         )
       ).to.be.revertedWith(
-        "GovernorBravo::propose: proposal function information arity mismatch"
+        "GovernorBravo::proposeInternal: proposal function information arity mismatch"
       );
     });
 
@@ -319,7 +321,7 @@ describe("Governor Bravo", function () {
       await expect(
         propose(governorBravo.connect(otherAccount))
       ).to.be.revertedWith(
-        "GovernorBravo::propose: proposer votes below proposal threshold"
+        "GovernorBravo::proposeInternal: proposer votes below proposal threshold"
       );
     });
 
@@ -329,7 +331,7 @@ describe("Governor Bravo", function () {
       await propose(governorBravo);
 
       await expect(propose(governorBravo)).to.be.revertedWith(
-        "GovernorBravo::propose: one live proposal per proposer, found an already active proposal"
+        "GovernorBravo::proposeInternal: one live proposal per proposer, found an already active proposal"
       );
     });
 
@@ -351,7 +353,7 @@ describe("Governor Bravo", function () {
       );
 
       await expect(propose(governorBravo)).to.be.revertedWith(
-        "GovernorBravo::propose: one live proposal per proposer, found an already pending proposal"
+        "GovernorBravo::proposeInternal: one live proposal per proposer, found an already pending proposal"
       );
     });
 
@@ -360,7 +362,7 @@ describe("Governor Bravo", function () {
 
       await expect(
         propose(governorBravo, [], [], [], "Empty")
-      ).to.be.revertedWith("GovernorBravo::propose: must provide actions");
+      ).to.be.revertedWith("GovernorBravo::proposeInternal: must provide actions");
     });
 
     it("Error: max operations", async function () {
@@ -373,7 +375,7 @@ describe("Governor Bravo", function () {
           Array(11).fill("0x"),
           "11 actions"
         )
-      ).to.be.revertedWith("GovernorBravo::propose: too many actions");
+      ).to.be.revertedWith("GovernorBravo::proposeInternal: too many actions");
     });
 
     it("Error: bravo not active", async function () {
@@ -402,7 +404,172 @@ describe("Governor Bravo", function () {
 
       await expect(
         propose(governorBravo, [owner], [1], ["0x"], "Desc")
-      ).to.be.revertedWith("GovernorBravo::propose: Governor Bravo not active");
+      ).to.be.revertedWith("GovernorBravo::proposeInternal: Governor Bravo not active");
+    });
+
+    describe("By Sig", function () {
+      it("Happy Path", async function () {
+        const { governorBravo, owner, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        const domain = await getTypedDomain(
+          governorBravo,
+          (
+            await ethers.provider.getNetwork()
+          ).chainId
+        );
+
+        const payload = {
+          targets: [await governorBravo.getAddress()],
+          values: [0],
+          signatures: [""],
+          calldatas: ["0x1234"],
+          description: "My proposal",
+          proposalId: 2,
+        };
+
+        const sig = await owner.signTypedData(
+          domain,
+          getProposeTypes(),
+          payload
+        );
+
+        const r = "0x" + sig.substring(2, 66);
+        const s = "0x" + sig.substring(66, 130);
+        const v = "0x" + sig.substring(130, 132);
+
+        const currentBlock = BigInt((await time.latestBlock()) + 1);
+        const votingDelay = await governorBravo.votingDelay();
+        const startBlock = currentBlock + votingDelay;
+        const endBlock =
+          currentBlock + votingDelay + (await governorBravo.votingPeriod());
+        await expect(
+          governorBravo
+            .connect(otherAccount)
+            .proposeBySig(
+              payload.targets,
+              payload.values,
+              payload.signatures,
+              payload.calldatas,
+              payload.description,
+              payload.proposalId,
+              v,
+              r,
+              s
+            )
+        )
+          .to.emit(governorBravo, "ProposalCreated")
+          .withArgs(
+            2,
+            owner.address,
+            payload.targets,
+            payload.values,
+            payload.signatures,
+            payload.calldatas,
+            startBlock,
+            endBlock,
+            payload.description
+          );
+      });
+
+      it("Error: invalid sig", async function () {
+        const { governorBravo, owner, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        const domain = await getTypedDomain(
+          governorBravo,
+          (
+            await ethers.provider.getNetwork()
+          ).chainId
+        );
+
+        const payload = {
+          targets: [await governorBravo.getAddress()],
+          values: [0],
+          signatures: [""],
+          calldatas: ["0x1234"],
+          description: "My proposal",
+          proposalId: 2,
+        };
+
+        const sig = await owner.signTypedData(
+          domain,
+          getProposeTypes(),
+          payload
+        );
+
+        const r = "0x" + sig.substring(2, 66);
+        const s = "0x" + sig.substring(66, 130);
+        const v = "0x00";
+
+        const currentBlock = BigInt((await time.latestBlock()) + 1);
+        const votingDelay = await governorBravo.votingDelay();
+        currentBlock + votingDelay + (await governorBravo.votingPeriod());
+        await expect(
+          governorBravo
+            .connect(otherAccount)
+            .proposeBySig(
+              payload.targets,
+              payload.values,
+              payload.signatures,
+              payload.calldatas,
+              payload.description,
+              payload.proposalId,
+              v,
+              r,
+              s
+            )
+        ).to.be.revertedWith("GovernorBravo::proposeBySig: invalid signature");
+      });
+
+      it("Error: invalid proposal id", async function () {
+        const { governorBravo, owner, otherAccount } = await loadFixture(
+          deployFixtures
+        );
+        const domain = await getTypedDomain(
+          governorBravo,
+          (
+            await ethers.provider.getNetwork()
+          ).chainId
+        );
+
+        const payload = {
+          targets: [await governorBravo.getAddress()],
+          values: [0],
+          signatures: [""],
+          calldatas: ["0x1234"],
+          description: "My proposal",
+          proposalId: 3,
+        };
+
+        const sig = await owner.signTypedData(
+          domain,
+          getProposeTypes(),
+          payload
+        );
+
+        const r = "0x" + sig.substring(2, 66);
+        const s = "0x" + sig.substring(66, 130);
+        const v = "0x" + sig.substring(130, 132);
+
+        await expect(
+          governorBravo
+            .connect(otherAccount)
+            .proposeBySig(
+              payload.targets,
+              payload.values,
+              payload.signatures,
+              payload.calldatas,
+              payload.description,
+              payload.proposalId,
+              v,
+              r,
+              s
+            )
+        ).to.be.revertedWith(
+          "GovernorBravo::proposeBySig: invalid proposal id"
+        );
+      });
     });
 
     describe("Whitelist", function () {
@@ -655,58 +822,142 @@ describe("Governor Bravo", function () {
       );
     });
 
-    it("By Sig", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
-      const domain = await getTypedDomain(
-        governorBravo,
-        (
-          await ethers.provider.getNetwork()
-        ).chainId
-      );
-
-      const proposalId = await propose(governorBravo);
-
-      const sig = await owner.signTypedData(domain, getVoteTypes(), {
-        proposalId,
-        support: 1,
-      });
-
-      const r = "0x" + sig.substring(2, 66);
-      const s = "0x" + sig.substring(66, 130);
-      const v = "0x" + sig.substring(130, 132);
-      await expect(governorBravo.castVoteBySig(proposalId, 1, v, r, s))
-        .to.emit(governorBravo, "VoteCast")
-        .withArgs(
-          owner.address,
-          proposalId,
-          1,
-          BigInt("10000000000000000000000000"),
-          ""
+    describe("By Sig", function () {
+      it("Happy Path", async function () {
+        const { governorBravo, owner } = await loadFixture(deployFixtures);
+        const domain = await getTypedDomain(
+          governorBravo,
+          (
+            await ethers.provider.getNetwork()
+          ).chainId
         );
-    });
 
-    it("Error: invalid sig", async function () {
-      const { governorBravo, owner } = await loadFixture(deployFixtures);
-      const domain = await getTypedDomain(
-        governorBravo,
-        (
-          await ethers.provider.getNetwork()
-        ).chainId
-      );
+        const proposalId = await propose(governorBravo);
 
-      const proposalId = await propose(governorBravo);
+        const sig = await owner.signTypedData(domain, getVoteTypes(), {
+          proposalId,
+          support: 1,
+        });
 
-      const sig = await owner.signTypedData(domain, getVoteTypes(), {
-        proposalId,
-        support: 1,
+        const r = "0x" + sig.substring(2, 66);
+        const s = "0x" + sig.substring(66, 130);
+        const v = "0x" + sig.substring(130, 132);
+        await expect(governorBravo.castVoteBySig(proposalId, 1, v, r, s))
+          .to.emit(governorBravo, "VoteCast")
+          .withArgs(
+            owner.address,
+            proposalId,
+            1,
+            BigInt("10000000000000000000000000"),
+            ""
+          );
       });
 
-      const r = "0x" + sig.substring(2, 66);
-      const s = "0x" + sig.substring(66, 130);
-      const v = "0x00";
-      await expect(
-        governorBravo.castVoteBySig(proposalId, 1, v, r, s)
-      ).to.be.revertedWith("GovernorBravo::castVoteBySig: invalid signature");
+      it("Error: invalid sig", async function () {
+        const { governorBravo, owner } = await loadFixture(deployFixtures);
+        const domain = await getTypedDomain(
+          governorBravo,
+          (
+            await ethers.provider.getNetwork()
+          ).chainId
+        );
+
+        const proposalId = await propose(governorBravo);
+
+        const sig = await owner.signTypedData(domain, getVoteTypes(), {
+          proposalId,
+          support: 1,
+        });
+
+        const r = "0x" + sig.substring(2, 66);
+        const s = "0x" + sig.substring(66, 130);
+        const v = "0x00";
+        await expect(
+          governorBravo.castVoteBySig(proposalId, 1, v, r, s)
+        ).to.be.revertedWith("GovernorBravo::castVoteBySig: invalid signature");
+      });
+
+      it("Happy Path with reason", async function () {
+        const { governorBravo, owner } = await loadFixture(deployFixtures);
+        const domain = await getTypedDomain(
+          governorBravo,
+          (
+            await ethers.provider.getNetwork()
+          ).chainId
+        );
+
+        const proposalId = await propose(governorBravo);
+
+        const sig = await owner.signTypedData(
+          domain,
+          getVoteWithReasonTypes(),
+          {
+            proposalId,
+            support: 1,
+            reason: "Great Idea!",
+          }
+        );
+
+        const r = "0x" + sig.substring(2, 66);
+        const s = "0x" + sig.substring(66, 130);
+        const v = "0x" + sig.substring(130, 132);
+        await expect(
+          governorBravo.castVoteWithReasonBySig(
+            proposalId,
+            1,
+            "Great Idea!",
+            v,
+            r,
+            s
+          )
+        )
+          .to.emit(governorBravo, "VoteCast")
+          .withArgs(
+            owner.address,
+            proposalId,
+            1,
+            BigInt("10000000000000000000000000"),
+            "Great Idea!"
+          );
+      });
+
+      it("Error: invalid signature with reason", async function () {
+        const { governorBravo, owner } = await loadFixture(deployFixtures);
+        const domain = await getTypedDomain(
+          governorBravo,
+          (
+            await ethers.provider.getNetwork()
+          ).chainId
+        );
+
+        const proposalId = await propose(governorBravo);
+
+        const sig = await owner.signTypedData(
+          domain,
+          getVoteWithReasonTypes(),
+          {
+            proposalId,
+            support: 1,
+            reason: "Great Idea!",
+          }
+        );
+
+        const r = "0x" + sig.substring(2, 66);
+        const s = "0x" + sig.substring(66, 130);
+        const v = "0x00";
+        await expect(
+          governorBravo.castVoteWithReasonBySig(
+            proposalId,
+            1,
+            "Great Idea!",
+            v,
+            r,
+            s
+          )
+        ).to.be.rejectedWith(
+          "GovernorBravo::castVoteWithReasonBySig: invalid signature"
+        );
+      });
     });
   });
 
