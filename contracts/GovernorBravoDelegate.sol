@@ -45,7 +45,7 @@ contract GovernorBravoDelegate is
         keccak256("Ballot(uint256 proposalId,uint8 support)");
 
     /// @notice The EIP-712 typehash for the ballot with reason struct used by the contract
-    bytes32 public constant BALLOT_TYPEHASH_WITH_REASON =
+    bytes32 public constant BALLOT_WITH_REASON_TYPEHASH =
         keccak256("Ballot(uint256 proposalId,uint8 support,string reason)");
 
     /// @notice The EIP-712 typehash for the proposal struct used by the contract
@@ -219,28 +219,28 @@ contract GovernorBravoDelegate is
         // Reject proposals before initiating as Governor
         require(
             initialProposalId != 0,
-            "GovernorBravo::propose: Governor Bravo not active"
+            "GovernorBravo::proposeInternal: Governor Bravo not active"
         );
         // Allow addresses above proposal threshold and whitelisted addresses to propose
         require(
             comp.getPriorVotes(proposer, block.number - 1) >
                 proposalThreshold ||
                 isWhitelisted(proposer),
-            "GovernorBravo::propose: proposer votes below proposal threshold"
+            "GovernorBravo::proposeInternal: proposer votes below proposal threshold"
         );
         require(
             targets.length == values.length &&
                 targets.length == signatures.length &&
                 targets.length == calldatas.length,
-            "GovernorBravo::propose: proposal function information arity mismatch"
+            "GovernorBravo::proposeInternal: proposal function information arity mismatch"
         );
         require(
             targets.length != 0,
-            "GovernorBravo::propose: must provide actions"
+            "GovernorBravo::proposeInternal: must provide actions"
         );
         require(
             targets.length <= proposalMaxOperations,
-            "GovernorBravo::propose: too many actions"
+            "GovernorBravo::proposeInternal: too many actions"
         );
 
         uint latestProposalId = latestProposalIds[proposer];
@@ -250,11 +250,11 @@ contract GovernorBravoDelegate is
             );
             require(
                 proposersLatestProposalState != ProposalState.Active,
-                "GovernorBravo::propose: one live proposal per proposer, found an already active proposal"
+                "GovernorBravo::proposeInternal: one live proposal per proposer, found an already active proposal"
             );
             require(
                 proposersLatestProposalState != ProposalState.Pending,
-                "GovernorBravo::propose: one live proposal per proposer, found an already pending proposal"
+                "GovernorBravo::proposeInternal: one live proposal per proposer, found an already pending proposal"
             );
         }
 
@@ -267,7 +267,7 @@ contract GovernorBravoDelegate is
         // This should never happen but add a check in case.
         require(
             newProposal.id == 0,
-            "GovernorBravo::propose: ProposalID collision"
+            "GovernorBravo::proposeInternal: ProposalID collision"
         );
         newProposal.id = newProposalID;
         newProposal.proposer = proposer;
@@ -493,6 +493,45 @@ contract GovernorBravoDelegate is
     }
 
     /**
+     * @notice Cast a vote for a proposal by signature
+     * @dev External function that accepts EIP-712 signatures for voting on proposals.
+     */
+    function castVoteBySig(
+        uint proposalId,
+        uint8 support,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                DOMAIN_TYPEHASH,
+                keccak256(bytes(name)),
+                getChainIdInternal(),
+                address(this)
+            )
+        );
+        bytes32 structHash = keccak256(
+            abi.encode(BALLOT_TYPEHASH, proposalId, support)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
+        address signatory = ecrecover(digest, v, r, s);
+        require(
+            signatory != address(0),
+            "GovernorBravo::castVoteBySig: invalid signature"
+        );
+        emit VoteCast(
+            signatory,
+            proposalId,
+            support,
+            castVoteInternal(signatory, proposalId, support),
+            ""
+        );
+    }
+
+    /**
      * @notice Cast a vote for a proposal with a reason
      * @param proposalId The id of the proposal to vote on
      * @param support The support value for the vote. 0=against, 1=for, 2=abstain
@@ -532,7 +571,7 @@ contract GovernorBravoDelegate is
             );
             bytes32 structHash = keccak256(
                 abi.encode(
-                    BALLOT_TYPEHASH_WITH_REASON,
+                    BALLOT_WITH_REASON_TYPEHASH,
                     proposalId,
                     support,
                     keccak256(bytes(reason))
@@ -553,45 +592,6 @@ contract GovernorBravoDelegate is
             support,
             castVoteInternal(signatory, proposalId, support),
             reason
-        );
-    }
-
-    /**
-     * @notice Cast a vote for a proposal by signature
-     * @dev External function that accepts EIP-712 signatures for voting on proposals.
-     */
-    function castVoteBySig(
-        uint proposalId,
-        uint8 support,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external {
-        bytes32 domainSeparator = keccak256(
-            abi.encode(
-                DOMAIN_TYPEHASH,
-                keccak256(bytes(name)),
-                getChainIdInternal(),
-                address(this)
-            )
-        );
-        bytes32 structHash = keccak256(
-            abi.encode(BALLOT_TYPEHASH, proposalId, support)
-        );
-        bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", domainSeparator, structHash)
-        );
-        address signatory = ecrecover(digest, v, r, s);
-        require(
-            signatory != address(0),
-            "GovernorBravo::castVoteBySig: invalid signature"
-        );
-        emit VoteCast(
-            signatory,
-            proposalId,
-            support,
-            castVoteInternal(signatory, proposalId, support),
-            ""
         );
     }
 
