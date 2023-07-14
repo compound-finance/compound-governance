@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+env:
+  RPC_URL: ${{ secrets.RPC_URL }}
+
 jobs:
   test:
     runs-on: ubuntu-latest

@@ -17,6 +17,7 @@ import {
   getVoteWithReasonTypes,
   getProposeTypes,
   ProposalState,
+  proposeAndExecute,
 } from "./governanceHelpers";
 import {
   GovernorBravoDelegate,
@@ -362,7 +363,9 @@ describe("Governor Bravo", function () {
 
       await expect(
         propose(governorBravo, [], [], [], "Empty")
-      ).to.be.revertedWith("GovernorBravo::proposeInternal: must provide actions");
+      ).to.be.revertedWith(
+        "GovernorBravo::proposeInternal: must provide actions"
+      );
     });
 
     it("Error: max operations", async function () {
@@ -404,7 +407,9 @@ describe("Governor Bravo", function () {
 
       await expect(
         propose(governorBravo, [owner], [1], ["0x"], "Desc")
-      ).to.be.revertedWith("GovernorBravo::proposeInternal: Governor Bravo not active");
+      ).to.be.revertedWith(
+        "GovernorBravo::proposeInternal: Governor Bravo not active"
+      );
     });
 
     describe("By Sig", function () {
@@ -647,14 +652,7 @@ describe("Governor Bravo", function () {
   describe("Execute", function () {
     it("Happy Path", async function () {
       const { governorBravo } = await loadFixture(deployFixtures);
-      const proposalId = await proposeAndQueue(governorBravo);
-
-      const timelockAddress = await governorBravo.timelock();
-      const timelock = await ethers.getContractAt("Timelock", timelockAddress);
-
-      await time.increase(await timelock.delay());
-
-      await governorBravo.execute(proposalId);
+      await proposeAndExecute(governorBravo);
     });
 
     it("Error: not queued", async function () {
@@ -698,19 +696,13 @@ describe("Governor Bravo", function () {
       const { governorBravo, owner } = await loadFixture(deployFixtures);
       const tx = { to: await governorBravo.timelock(), value: 1000 };
       await owner.sendTransaction(tx);
-      const proposalId = await proposeAndQueue(
+      const proposalId = await proposeAndExecute(
         governorBravo,
         [owner],
         [1],
         ["0x"],
         "Will be executed"
       );
-
-      const timelockAddress = await governorBravo.timelock();
-      const timelock = await ethers.getContractAt("Timelock", timelockAddress);
-
-      await time.increase(await timelock.delay());
-      await governorBravo.execute(proposalId);
 
       await expect(governorBravo.cancel(proposalId)).to.be.revertedWith(
         "GovernorBravo::cancel: cannot cancel executed proposal"
@@ -1073,14 +1065,7 @@ describe("Governor Bravo", function () {
 
     it("Executed", async function () {
       const { governorBravo } = await loadFixture(deployFixtures);
-      const proposalId = await proposeAndQueue(governorBravo);
-
-      const timelockAddress = await governorBravo.timelock();
-      const timelock = await ethers.getContractAt("Timelock", timelockAddress);
-
-      await time.increase(await timelock.delay());
-
-      await governorBravo.execute(proposalId);
+      const proposalId = await proposeAndExecute(governorBravo);
       expect(await governorBravo.state(proposalId)).to.equal(
         ProposalState.Executed
       );
