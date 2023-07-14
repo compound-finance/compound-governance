@@ -30,6 +30,9 @@ describe("ForkTestSimulateUpgrade", function () {
 
   // Update the implementation of GovernorBravo before each test
   beforeEach(async function () {
+    if (process.env.RPC_URL === undefined) {
+      throw new Error("RPC_URL is undefined");
+    }
     await reset(process.env.RPC_URL);
     await impersonateAccount(await proposingSigner.getAddress());
     await comp.connect(proposingSigner).delegate(proposingSigner);
