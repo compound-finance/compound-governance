@@ -587,7 +587,7 @@ contract GovernorBravoDelegate is
             "GovernorBravo::castVoteWithReasonBySig: invalid signature"
         );
         emit VoteCast(
-            msg.sender,
+            signatory,
             proposalId,
             support,
             castVoteInternal(signatory, proposalId, support),

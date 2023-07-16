@@ -870,7 +870,9 @@ describe("Governor Bravo", function () {
       });
 
       it("Happy Path with reason", async function () {
-        const { governorBravo, owner } = await loadFixture(deployFixtures);
+        const { governorBravo, owner, otherAccount } = await loadFixture(
+          deployFixtures
+        );
         const domain = await getTypedDomain(
           governorBravo,
           (
@@ -894,14 +896,9 @@ describe("Governor Bravo", function () {
         const s = "0x" + sig.substring(66, 130);
         const v = "0x" + sig.substring(130, 132);
         await expect(
-          governorBravo.castVoteWithReasonBySig(
-            proposalId,
-            1,
-            "Great Idea!",
-            v,
-            r,
-            s
-          )
+          governorBravo
+            .connect(otherAccount)
+            .castVoteWithReasonBySig(proposalId, 1, "Great Idea!", v, r, s)
         )
           .to.emit(governorBravo, "VoteCast")
           .withArgs(

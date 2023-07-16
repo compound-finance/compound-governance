@@ -1,6 +1,11 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { proposeAndExecute } from "./governanceHelpers";
+import {
+  proposeAndExecute,
+  propose,
+  getVoteWithReasonTypes,
+  getTypedDomain,
+} from "./governanceHelpers";
 import {
   mine,
   reset,
@@ -124,5 +129,42 @@ describe("ForkTestSimulateUpgrade", function () {
     );
 
     expect(await comp.balanceOf(signer.address)).to.equal(10000);
+  });
+
+  it("Cast vote by sig with reason", async function () {
+    const [signer, otherSigner] = await ethers.getSigners();
+    await comp.delegate(signer);
+    await comp.connect(proposingSigner).transfer(signer.address, 1000);
+    const proposalId = await propose(
+      governorBravoDelegator.connect(proposingSigner),
+      [governorBravoDelegator],
+      [0],
+      ["0x"],
+      "Test Proposal"
+    );
+
+    const domain = await getTypedDomain(
+      governorBravoDelegator,
+      (
+        await ethers.provider.getNetwork()
+      ).chainId
+    );
+
+    const sig = await signer.signTypedData(domain, getVoteWithReasonTypes(), {
+      proposalId,
+      support: 1,
+      reason: "Great Idea!",
+    });
+
+    const r = "0x" + sig.substring(2, 66);
+    const s = "0x" + sig.substring(66, 130);
+    const v = "0x" + sig.substring(130, 132);
+    await expect(
+      governorBravoDelegator
+        .connect(otherSigner)
+        .castVoteWithReasonBySig(proposalId, 1, "Great Idea!", v, r, s)
+    )
+      .to.emit(governorBravoDelegator, "VoteCast")
+      .withArgs(signer.address, proposalId, 1, BigInt("1000"), "Great Idea!");
   });
 });
