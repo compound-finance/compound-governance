@@ -54,6 +54,15 @@ export async function proposeAndPass(
   return proposalId;
 }
 
+/**
+ *
+ * @param governor The governor to use (must have a signer with sufficient delegations)
+ * @param targets Targets for each proposal action
+ * @param values Value for each proposal action
+ * @param callDatas Calldata for each proposal action
+ * @param description The proposal description
+ * @returns Proposal id for the new proposal
+ */
 export async function proposeAndQueue(
   governor: GovernorBravoDelegate,
   targets: AddressLike[] = [ethers.ZeroAddress],
@@ -71,6 +80,39 @@ export async function proposeAndQueue(
 
   await governor.queue(proposalId);
 
+  return proposalId;
+}
+
+/**
+ * Propose, pass, queue, and execute a proposal
+ * @param governor The governor to use (must have a signer with sufficient delegations)
+ * @param targets Targets for each proposal action
+ * @param values Value for each proposal action
+ * @param callDatas Calldata for each proposal action
+ * @param description The proposal description
+ * @returns Proposal id for the new proposal
+ */
+export async function proposeAndExecute(
+  governor: GovernorBravoDelegate,
+  targets: AddressLike[] = [ethers.ZeroAddress],
+  values: BigNumberish[] = [0],
+  callDatas: string[] = ["0x"],
+  description = "Test Proposal"
+): Promise<bigint> {
+  const proposalId = await proposeAndQueue(
+    governor,
+    targets,
+    values,
+    callDatas,
+    description
+  );
+  await time.increase(
+    await ethers.provider.call({
+      to: await governor.timelock(),
+      data: ethers.id("delay()").substring(0, 10),
+    })
+  );
+  await governor.execute(proposalId);
   return proposalId;
 }
 
@@ -211,7 +253,7 @@ export function getProposeTypes() {
       { name: "description", type: "string" },
       { name: "proposalId", type: "uint256" },
     ],
-  }
+  };
 }
 
 export enum ProposalState {

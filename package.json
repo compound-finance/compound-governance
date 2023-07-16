@@ -10,8 +10,8 @@
     "test": "hardhat test",
     "coverage": "hardhat coverage",
     "build": "hardhat compile",
-    "lint:fix": "prettier --write **/*.{sol,js,ts} && eslint --fix . --ext js,ts",
-    "lint:check": "concurrently \"prettier --check **.{sol,js,ts}\" \"eslint . --ext js,ts\"",
+    "lint:fix": "prettier --write */**.{sol,js,ts} && eslint --fix . --ext js,ts",
+    "lint:check": "concurrently \"prettier --check */**.{sol,js,ts}\" \"eslint . --ext js,ts\"",
     "prepare": "husky install"
   },
   "devDependencies": {
@@ -19,6 +19,7 @@
     "@typescript-eslint/eslint-plugin": "^5.59.11",
     "@typescript-eslint/parser": "^5.59.11",
     "concurrently": "^8.2.0",
+    "dotenv": "^16.3.1",
     "eslint": "^8.43.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-config-standard": "^17.1.0",
@@ -32,7 +33,12 @@
   },
   "dependencies": {},
   "lint-staged": {
-    "*.{js,ts}": ["eslint .", "prettier --check"],
-    "*.sol": ["prettier --check"]
+    "*.{js,ts}": [
+      "eslint .",
+      "prettier --check"
+    ],
+    "*.sol": [
+      "prettier --check"
+    ]
   }
 }
