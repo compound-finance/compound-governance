@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.10;
 
-import "./GovernorBravoInterfaces.sol";
+import { GovernorBravoDelegatorStorage, GovernorBravoEvents } from "./GovernorBravoInterfaces.sol";
 
 contract GovernorBravoDelegator is
     GovernorBravoDelegatorStorage,
