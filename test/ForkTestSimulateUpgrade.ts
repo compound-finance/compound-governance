@@ -13,7 +13,7 @@ import {
   loadFixture,
 } from "@nomicfoundation/hardhat-network-helpers";
 
-describe.only("ForkTestSimulateUpgrade", function () {
+describe("ForkTestSimulateUpgrade", function () {
   // Update the implementation of GovernorBravo before each test
   async function deployFixtures() {
     if (process.env.RPC_URL === undefined) {
