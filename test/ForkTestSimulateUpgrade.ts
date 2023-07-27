@@ -10,35 +10,29 @@ import {
   mine,
   reset,
   impersonateAccount,
+  loadFixture,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { Comp, GovernorBravoDelegate } from "../typechain-types";
-import { Signer } from "ethers";
 
 describe("ForkTestSimulateUpgrade", function () {
-  let proposingSigner: Signer;
-  let comp: Comp;
-  let governorBravoDelegator: GovernorBravoDelegate;
-
-  before(async function () {
-    comp = await ethers.getContractAt(
-      "Comp",
-      "0xc00e94Cb662C3520282E6f5717214004A7f26888"
-    );
-    governorBravoDelegator = await ethers.getContractAt(
-      "GovernorBravoDelegate",
-      "0xc0Da02939E1441F497fd74F78cE7Decb17B66529"
-    );
-    proposingSigner = await ethers.getSigner(
-      "0xF977814e90dA44bFA03b6295A0616a897441aceC"
-    );
-  });
-
   // Update the implementation of GovernorBravo before each test
-  beforeEach(async function () {
+  async function deployFixtures() {
     if (process.env.RPC_URL === undefined) {
       throw new Error("RPC_URL is undefined");
     }
     await reset(process.env.RPC_URL);
+
+    const comp = await ethers.getContractAt(
+      "Comp",
+      "0xc00e94Cb662C3520282E6f5717214004A7f26888"
+    );
+    const governorBravoDelegator = await ethers.getContractAt(
+      "GovernorBravoDelegate",
+      "0xc0Da02939E1441F497fd74F78cE7Decb17B66529"
+    );
+    const proposingSigner = await ethers.getSigner(
+      "0xF977814e90dA44bFA03b6295A0616a897441aceC"
+    );
+
     await impersonateAccount(await proposingSigner.getAddress());
     await comp.connect(proposingSigner).delegate(proposingSigner);
     const NewImplementation = await ethers.getContractFactory(
@@ -59,9 +53,12 @@ describe("ForkTestSimulateUpgrade", function () {
       ],
       "Upgrade Governance"
     );
-  });
+
+    return { comp, governorBravoDelegator, proposingSigner };
+  }
 
   it("access old proposals", async function () {
+    const { governorBravoDelegator } = await loadFixture(deployFixtures);
     const proposal43 = await governorBravoDelegator.proposals(43);
     expect(proposal43).to.deep.equal([
       43,
@@ -78,6 +75,7 @@ describe("ForkTestSimulateUpgrade", function () {
   });
 
   it("access old actions", async function () {
+    const { governorBravoDelegator } = await loadFixture(deployFixtures);
     const proposal43Actions = await governorBravoDelegator.getActions(43);
     expect(proposal43Actions).to.deep.equal([
       [
@@ -94,6 +92,7 @@ describe("ForkTestSimulateUpgrade", function () {
   });
 
   it("validate storage fields", async function () {
+    const { governorBravoDelegator } = await loadFixture(deployFixtures);
     expect(await governorBravoDelegator.admin()).to.equal(
       "0x6d903f6003cca6255D85CcA4D3B5E5146dC33925"
     );
@@ -109,6 +108,9 @@ describe("ForkTestSimulateUpgrade", function () {
   });
 
   it("Grant COMP proposal", async function () {
+    const { comp, governorBravoDelegator, proposingSigner } = await loadFixture(
+      deployFixtures
+    );
     const [signer] = await ethers.getSigners();
     const comptrollerAddress = "0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B";
     const grantCompSelector = ethers
@@ -132,6 +134,9 @@ describe("ForkTestSimulateUpgrade", function () {
   });
 
   it("Cast vote by sig with reason", async function () {
+    const { comp, governorBravoDelegator, proposingSigner } = await loadFixture(
+      deployFixtures
+    );
     const [signer, otherSigner] = await ethers.getSigners();
     await comp.delegate(signer);
     await comp.connect(proposingSigner).transfer(signer.address, 1000);
