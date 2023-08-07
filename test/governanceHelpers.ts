@@ -121,9 +121,7 @@ export async function setupGovernorAlpha() {
 
   const Timelock = await ethers.getContractFactory("Timelock");
   const Comp = await ethers.getContractFactory("Comp");
-  const GovernorAlpha = await ethers.getContractFactory(
-    "contracts/GovernorAlpha.sol:GovernorAlpha"
-  );
+  const GovernorAlpha = await ethers.getContractFactory("GovernorAlpha");
 
   const timelock = await Timelock.deploy(owner, 172800);
   const comp = await Comp.deploy(owner);
