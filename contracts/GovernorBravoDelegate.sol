@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import { GovernorBravoDelegateStorageV2, GovernorBravoEvents, TimelockInterface, CompInterface, GovernorAlphaInterface } from "./GovernorBravoInterfaces.sol";
 
+/// @custom:security-contact security@compound.finance
 contract GovernorBravoDelegate is
     GovernorBravoDelegateStorageV2,
     GovernorBravoEvents
