@@ -141,6 +141,9 @@ contract GovernorBravoDelegate is
      * @param calldatas Calldatas for proposal calls
      * @param description String description of the proposal
      * @param proposalId The id of the proposal to propose (reverted if this isn't the next proposal id)
+     * @param v The recovery byte of the signature
+     * @param r Half of the ECDSA signature pair
+     * @param s Half of the ECDSA signature pair
      * @return Proposal id of new proposal
      */
     function proposeBySig(
@@ -552,6 +555,15 @@ contract GovernorBravoDelegate is
         );
     }
 
+    /**
+     * @notice Cast a vote for a proposal with a reason by `ERC712` signature
+     * @param proposalId The id of the proposal to vote on
+     * @param support The support value for the vote. 0=against, 1=for, 2=abstain
+     * @param reason The reason given for the vote by the voter
+     * @param v The recovery byte of the signature
+     * @param r Half of the ECDSA signature pair
+     * @param s Half of the ECDSA signature pair
+     */
     function castVoteWithReasonBySig(
         uint proposalId,
         uint8 support,
