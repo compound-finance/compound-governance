@@ -16,7 +16,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     mainnet: {
-      url: process.env.MAINNET_RPC_URL,
+      url: process.env.RPC_URL,
     },
   },
   etherscan: {
