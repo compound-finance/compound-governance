@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@compound-finance/hardhat-match";
 import { config as dotEnvConfig } from "dotenv";
 dotEnvConfig();
 
@@ -12,6 +13,14 @@ const config: HardhatUserConfig = {
         runs: 200,
       },
     },
+  },
+  networks: {
+    mainnet: {
+      url: process.env.MAINNET_RPC_URL,
+    },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 };
 
