@@ -109,6 +109,9 @@ describe("ForkTestSimulateUpgrade", function () {
     expect(await governorBravoDelegator.timelock()).to.equal(
       "0x6d903f6003cca6255D85CcA4D3B5E5146dC33925"
     );
+    expect(await governorBravoDelegator.whitelistGuardian()).to.equal(
+      "0xbbf3f1421D886E9b2c5D716B5192aC998af2012c"
+    );
   });
 
   it("Grant COMP proposal", async function () {
@@ -175,5 +178,36 @@ describe("ForkTestSimulateUpgrade", function () {
     )
       .to.emit(governorBravoDelegator, "VoteCast")
       .withArgs(signer.address, proposalId, 1, BigInt("1000"), "Great Idea!");
+  });
+
+  it("Set proposal guardian", async function () {
+    const { governorBravoDelegator, proposingSigner } = await loadFixture(
+      deployFixtures
+    );
+    const [signer] = await ethers.getSigners();
+    const setProposalGuardianSelector = ethers
+      .id("_setProposalGuardian(address)")
+      .substring(0, 10);
+    const setProposalGuardianData =
+      setProposalGuardianSelector +
+      ethers.AbiCoder.defaultAbiCoder()
+        .encode(["address"], [signer.address])
+        .slice(2);
+
+    expect(await governorBravoDelegator.proposalGuardian()).to.equal(
+      ethers.ZeroAddress
+    );
+
+    await proposeAndExecute(
+      governorBravoDelegator.connect(proposingSigner),
+      [await governorBravoDelegator.getAddress()],
+      [0],
+      [setProposalGuardianData],
+      "Set Proposal Guardian"
+    );
+
+    expect(await governorBravoDelegator.proposalGuardian()).to.equal(
+      signer.address
+    );
   });
 });
