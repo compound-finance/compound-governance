@@ -30,7 +30,7 @@ describe("ForkTestSimulateUpgrade", function () {
       "0xc0Da02939E1441F497fd74F78cE7Decb17B66529"
     );
     const proposingSigner = await ethers.getSigner(
-      "0x2775b1c75658Be0F640272CCb8c72ac986009e38"
+      "0xF977814e90dA44bFA03b6295A0616a897441aceC"
     );
     await hardhat.network.provider.send("hardhat_setBalance", [
       proposingSigner.address,

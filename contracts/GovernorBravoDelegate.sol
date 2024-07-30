@@ -381,14 +381,12 @@ contract GovernorBravoDelegate is
 
         // Proposer can cancel
         if (msg.sender != proposal.proposer) {
-            // Whitelisted proposers can't be canceled for falling below proposal threshold
-            if (isWhitelisted(proposal.proposer)) {
+            if (msg.sender != whitelistGuardian) {
+                // Whitelisted proposers can't be canceled for falling below proposal threshold
                 require(
-                    (comp.getPriorVotes(proposal.proposer, block.number - 1) <
-                        proposalThreshold) && msg.sender == whitelistGuardian,
+                    !isWhitelisted(proposal.proposer),
                     "GovernorBravo::cancel: whitelisted proposer"
                 );
-            } else {
                 require(
                     (comp.getPriorVotes(proposal.proposer, block.number - 1) <
                         proposalThreshold),
@@ -653,7 +651,7 @@ contract GovernorBravoDelegate is
 
     /**
      * @notice View function which returns if an account is whitelisted
-     * @param account Account to check white list status of
+     * @param account Account to check whitelist status of
      * @return If the account is whitelisted
      */
     function isWhitelisted(address account) public view returns (bool) {

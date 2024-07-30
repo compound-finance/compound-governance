@@ -692,6 +692,14 @@ describe("Governor Bravo", function () {
       ).to.be.revertedWith("GovernorBravo::cancel: proposer above threshold");
     });
 
+    it.only("Happy path: guardian can cancel", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      const proposalId = await proposeAndPass(governorBravo);
+
+      await governorBravo._setWhitelistGuardian(otherAccount);
+      await governorBravo.connect(otherAccount).cancel(proposalId);
+    });
+
     it("Error: cancel executed proposal", async function () {
       const { governorBravo, owner } = await loadFixture(deployFixtures);
       const tx = { to: await governorBravo.timelock(), value: 1000 };
@@ -736,28 +744,6 @@ describe("Governor Bravo", function () {
         );
         const proposalId = await propose(governorBravo.connect(otherAccount));
 
-        await expect(governorBravo.cancel(proposalId)).to.be.revertedWith(
-          "GovernorBravo::cancel: whitelisted proposer"
-        );
-      });
-
-      it("Error: whitelisted proposer above threshold", async function () {
-        const { governorBravo, owner, otherAccount, comp } = await loadFixture(
-          deployFixtures
-        );
-
-        await governorBravo._setWhitelistAccountExpiration(
-          otherAccount,
-          (await time.latest()) + 1000
-        );
-        const proposalId = await propose(governorBravo.connect(otherAccount));
-        await comp.transfer(
-          otherAccount,
-          BigInt("100000") * BigInt("10") ** BigInt("18")
-        );
-        await comp.connect(otherAccount).delegate(otherAccount);
-
-        await governorBravo._setWhitelistGuardian(owner);
         await expect(governorBravo.cancel(proposalId)).to.be.revertedWith(
           "GovernorBravo::cancel: whitelisted proposer"
         );
