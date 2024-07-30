@@ -683,6 +683,14 @@ describe("Governor Bravo", function () {
       await governorBravo.connect(otherAccount).cancel(proposalId);
     });
 
+    it("Happy path: guardian can cancel", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      const proposalId = await proposeAndPass(governorBravo);
+
+      await governorBravo._setProposalGuardian(otherAccount);
+      await governorBravo.connect(otherAccount).cancel(proposalId);
+    });
+
     it("Error: above threshold", async function () {
       const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
       const proposalId = await proposeAndPass(governorBravo);
@@ -690,14 +698,6 @@ describe("Governor Bravo", function () {
       await expect(
         governorBravo.connect(otherAccount).cancel(proposalId)
       ).to.be.revertedWith("GovernorBravo::cancel: proposer above threshold");
-    });
-
-    it("Happy path: guardian can cancel", async function () {
-      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
-      const proposalId = await proposeAndPass(governorBravo);
-
-      await governorBravo._setWhitelistGuardian(otherAccount);
-      await governorBravo.connect(otherAccount).cancel(proposalId);
     });
 
     it("Error: cancel executed proposal", async function () {
@@ -1218,6 +1218,28 @@ describe("Governor Bravo", function () {
           .to.emit(governorBravo, "NewAdmin")
           .withArgs(owner.address, otherAccount.address);
       });
+    });
+  });
+
+  describe("Proposal Guardian", function () {
+    it("Set Proposal Guardian: admin only", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      await expect(
+        governorBravo.connect(otherAccount)._setProposalGuardian(otherAccount)
+      ).to.be.revertedWith("GovernorBravo::_setProposalGuardian: admin only");
+      expect(await governorBravo.proposalGuardian()).to.equal(
+        ethers.ZeroAddress
+      );
+    });
+
+    it("Set Proposal Guardian: happy path", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      await expect(governorBravo._setProposalGuardian(otherAccount))
+        .to.emit(governorBravo, "ProposalGuardianSet")
+        .withArgs(ethers.ZeroAddress, otherAccount.address);
+      expect(await governorBravo.proposalGuardian()).to.equal(
+        otherAccount.address
+      );
     });
   });
 

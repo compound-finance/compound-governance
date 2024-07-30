@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.10;
 
-import { GovernorBravoDelegateStorageV2, GovernorBravoEvents, TimelockInterface, CompInterface, GovernorAlphaInterface } from "./GovernorBravoInterfaces.sol";
+import { GovernorBravoDelegateStorageV3, GovernorBravoEvents, TimelockInterface, CompInterface, GovernorAlphaInterface } from "./GovernorBravoInterfaces.sol";
 
 /// @custom:security-contact security@compound.finance
 contract GovernorBravoDelegate is
-    GovernorBravoDelegateStorageV2,
+    GovernorBravoDelegateStorageV3,
     GovernorBravoEvents
 {
     /// @notice The name of this contract
@@ -380,17 +380,17 @@ contract GovernorBravoDelegate is
         Proposal storage proposal = proposals[proposalId];
 
         // Proposer can cancel
-        if (msg.sender != proposal.proposer) {
-            if (msg.sender != whitelistGuardian) {
-                // Whitelisted proposers can't be canceled for falling below proposal threshold
+        if (msg.sender != proposal.proposer && msg.sender != proposalGuardian) {
+            require(
+                (comp.getPriorVotes(proposal.proposer, block.number - 1) <
+                    proposalThreshold),
+                "GovernorBravo::cancel: proposer above threshold"
+            );
+            // Whitelisted proposers can't be canceled for falling below proposal threshold
+            if (isWhitelisted(proposal.proposer)) {
                 require(
-                    !isWhitelisted(proposal.proposer),
+                    msg.sender == whitelistGuardian,
                     "GovernorBravo::cancel: whitelisted proposer"
-                );
-                require(
-                    (comp.getPriorVotes(proposal.proposer, block.number - 1) <
-                        proposalThreshold),
-                    "GovernorBravo::cancel: proposer above threshold"
                 );
             }
         }
@@ -750,6 +750,21 @@ contract GovernorBravoDelegate is
         whitelistGuardian = account;
 
         emit WhitelistGuardianSet(oldGuardian, whitelistGuardian);
+    }
+
+    /**
+     * @notice Admin function for setting the proposalGuardian. ProposalGuardian can cancel proposals
+     * @param account Account to set proposalGuardian to (0x0 to remove proposalGuardian)
+     */
+    function _setProposalGuardian(address account) external {
+        require(
+            msg.sender == admin,
+            "GovernorBravo::_setProposalGuardian: admin only"
+        );
+        address oldProposalGuardian = proposalGuardian;
+        proposalGuardian = account;
+
+        emit ProposalGuardianSet(oldProposalGuardian, proposalGuardian);
     }
 
     /**
