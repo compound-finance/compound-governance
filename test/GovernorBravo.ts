@@ -692,7 +692,7 @@ describe("Governor Bravo", function () {
       ).to.be.revertedWith("GovernorBravo::cancel: proposer above threshold");
     });
 
-    it.only("Happy path: guardian can cancel", async function () {
+    it("Happy path: guardian can cancel", async function () {
       const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
       const proposalId = await proposeAndPass(governorBravo);
 
