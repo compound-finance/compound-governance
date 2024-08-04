@@ -368,7 +368,7 @@ contract GovernorBravoDelegate is
     }
 
     /**
-     * @notice Cancels a proposal only if sender is the proposer, or proposer delegates dropped below proposal threshold
+     * @notice Cancels a proposal if sender is the proposer or proposalGuardian. Can be called by anyone if the proposer delegates dropped below proposal threshold.
      * @param proposalId The id of the proposal to cancel
      */
     function cancel(uint proposalId) external {
@@ -379,14 +379,14 @@ contract GovernorBravoDelegate is
 
         Proposal storage proposal = proposals[proposalId];
 
-        // Proposer can cancel
+        // Proposer or proposalGuardian can cancel
         if (msg.sender != proposal.proposer && msg.sender != proposalGuardian) {
             require(
                 (comp.getPriorVotes(proposal.proposer, block.number - 1) <
                     proposalThreshold),
                 "GovernorBravo::cancel: proposer above threshold"
             );
-            // Whitelisted proposers can't be canceled for falling below proposal threshold
+            // Only whitelist guardian can cancel proposals from whitelisted proposers with delegations below the proposal threshold
             if (isWhitelisted(proposal.proposer)) {
                 require(
                     msg.sender == whitelistGuardian,
