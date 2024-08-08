@@ -182,11 +182,16 @@ contract GovernorBravoDelegateStorageV2 is GovernorBravoDelegateStorageV1 {
 }
 
 contract GovernorBravoDelegateStorageV3 is GovernorBravoDelegateStorageV2 {
-    /// @notice Address which has the ability to cancel proposals
-    address internal _proposalGuardian;
+    /// @notice The address and expiration of the proposal guardian.
+    struct ProposalGuardian {
+        // Address of the `ProposalGuardian`
+        address account;
+        // Timestamp at which the guardian loses the ability to cancel proposals
+        uint96 expiration;
+    }
 
-    /// @notice Timestamp at which the proposalGuardian stored in the `_proposalGuardian` variable is set to expire
-    uint96 internal _proposalGuardianExpiry;
+    /// @notice Account which has the ability to cancel proposals. This privilege expires at the given expiration timestamp.
+    ProposalGuardian public proposalGuardian;
 }
 
 interface TimelockInterface {

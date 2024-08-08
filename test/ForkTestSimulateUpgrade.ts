@@ -187,24 +187,19 @@ describe("ForkTestSimulateUpgrade", function () {
     );
     const [signer] = await ethers.getSigners();
     const setProposalGuardianSelector = ethers
-      .id("_setProposalGuardian(address,uint96)")
+      .id("_setProposalGuardian((address,uint96))")
       .substring(0, 10);
+    const expirationTimestamp = (await time.latest()) + 6 * 30 * 24 * 60 * 60; // Expire in 6 months
     const setProposalGuardianData =
       setProposalGuardianSelector +
       ethers.AbiCoder.defaultAbiCoder()
-        .encode(
-          ["address", "uint96"],
-          [
-            signer.address,
-            (await time.latest()) +
-              6 * 30 * 24 * 60 * 60 /* Expire in 6 months */,
-          ]
-        )
+        .encode(["address", "uint96"], [signer.address, expirationTimestamp])
         .slice(2);
 
-    expect(await governorBravoDelegator.proposalGuardian()).to.equal(
-      ethers.ZeroAddress
-    );
+    expect(await governorBravoDelegator.proposalGuardian()).to.deep.equal([
+      ethers.ZeroAddress,
+      0,
+    ]);
 
     await proposeAndExecute(
       governorBravoDelegator.connect(proposingSigner),
@@ -214,8 +209,9 @@ describe("ForkTestSimulateUpgrade", function () {
       "Set Proposal Guardian"
     );
 
-    expect(await governorBravoDelegator.proposalGuardian()).to.equal(
-      signer.address
-    );
+    expect(await governorBravoDelegator.proposalGuardian()).to.deep.equal([
+      signer.address,
+      expirationTimestamp,
+    ]);
   });
 });

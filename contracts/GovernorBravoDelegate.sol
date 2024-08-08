@@ -382,10 +382,14 @@ contract GovernorBravoDelegate is
 
         Proposal storage proposal = proposals[proposalId];
 
+        // ProposalGuardian is only active if the expiration is in the future
+        address proposalGuardian = proposalGuardian.expiration >=
+            block.timestamp
+            ? proposalGuardian.account
+            : address(0);
+
         // Proposer or proposalGuardian can cancel
-        if (
-            msg.sender != proposal.proposer && msg.sender != proposalGuardian()
-        ) {
+        if (msg.sender != proposal.proposer && msg.sender != proposalGuardian) {
             require(
                 (comp.getPriorVotes(proposal.proposer, block.number - 1) <
                     proposalThreshold),
@@ -664,17 +668,6 @@ contract GovernorBravoDelegate is
     }
 
     /**
-     * @notice View function which returns the current proposal guardian
-     * @return The address of the current proposal guardian. If the proposal guardian expiry has passed, address(0) is returned.
-     */
-    function proposalGuardian() public view returns (address) {
-        return
-            _proposalGuardianExpiry >= block.timestamp
-                ? _proposalGuardian
-                : address(0);
-    }
-
-    /**
      * @notice Admin function for setting the voting delay
      * @param newVotingDelay new voting delay, in blocks
      */
@@ -769,25 +762,25 @@ contract GovernorBravoDelegate is
     }
 
     /**
-     * @notice Admin function for setting the proposalGuardian. ProposalGuardian can cancel proposals
-     * @param account Account to set proposalGuardian to (0x0 to remove proposalGuardian)
-     * @param expiry Timestamp at which the set proposal guardian will expire
+     * @notice Admin function for setting the proposalGuardian. ProposalGuardian can cancel all proposals.
+     * @param newProposalGuardian The account and expiration for the new proposal guardian.
      */
-    function _setProposalGuardian(address account, uint96 expiry) external {
+    function _setProposalGuardian(
+        ProposalGuardian memory newProposalGuardian
+    ) external {
         require(
             msg.sender == admin,
             "GovernorBravo::_setProposalGuardian: admin only"
         );
 
         emit ProposalGuardianSet(
-            _proposalGuardian,
-            _proposalGuardianExpiry,
-            account,
-            expiry
+            proposalGuardian.account,
+            proposalGuardian.expiration,
+            newProposalGuardian.account,
+            newProposalGuardian.expiration
         );
 
-        _proposalGuardian = account;
-        _proposalGuardianExpiry = expiry;
+        proposalGuardian = newProposalGuardian;
     }
 
     /**
