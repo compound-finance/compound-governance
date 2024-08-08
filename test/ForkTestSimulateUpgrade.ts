@@ -11,6 +11,7 @@ import {
   reset,
   impersonateAccount,
   loadFixture,
+  time,
 } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("ForkTestSimulateUpgrade", function () {
@@ -186,12 +187,19 @@ describe("ForkTestSimulateUpgrade", function () {
     );
     const [signer] = await ethers.getSigners();
     const setProposalGuardianSelector = ethers
-      .id("_setProposalGuardian(address)")
+      .id("_setProposalGuardian(address,uint96)")
       .substring(0, 10);
     const setProposalGuardianData =
       setProposalGuardianSelector +
       ethers.AbiCoder.defaultAbiCoder()
-        .encode(["address"], [signer.address])
+        .encode(
+          ["address", "uint96"],
+          [
+            signer.address,
+            (await time.latest()) +
+              6 * 30 * 24 * 60 * 60 /* Expire in 6 months */,
+          ]
+        )
         .slice(2);
 
     expect(await governorBravoDelegator.proposalGuardian()).to.equal(

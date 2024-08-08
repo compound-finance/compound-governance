@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.10;
 
-
 contract GovernorBravoEvents {
     /// @notice An event emitted when a new proposal is created
     event ProposalCreated(uint id, address proposer, address[] targets, uint[] values, string[] signatures, bytes[] calldatas, uint startBlock, uint endBlock, string description);
@@ -50,7 +49,11 @@ contract GovernorBravoEvents {
     event WhitelistGuardianSet(address oldGuardian, address newGuardian);
 
     /// @notice Emitted when the proposalGuardian is set
-    event ProposalGuardianSet(address oldProposalGuardian, address newProposalGuardian);
+    event ProposalGuardianSet(
+        address oldProposalGuardian, 
+        uint96 oldProposalGuardianExpiry, 
+        address newProposalGuardian, 
+        uint newProposalGuardianExpiry);
 }
 
 contract GovernorBravoDelegatorStorage {
@@ -64,7 +67,6 @@ contract GovernorBravoDelegatorStorage {
     address public implementation;
 }
 
-
 /**
  * @title Storage for Governor Bravo Delegate
  * @notice For future upgrades, do not change GovernorBravoDelegateStorageV1. Create a new
@@ -72,7 +74,6 @@ contract GovernorBravoDelegatorStorage {
  * GovernorBravoDelegateStorageVX.
  */
 contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
-
     /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
     uint public votingDelay;
 
@@ -99,7 +100,6 @@ contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 
     /// @notice The latest proposal for each proposer
     mapping (address => uint) public latestProposalIds;
-
 
     struct Proposal {
         /// @notice Unique id for looking up a proposal
@@ -183,7 +183,10 @@ contract GovernorBravoDelegateStorageV2 is GovernorBravoDelegateStorageV1 {
 
 contract GovernorBravoDelegateStorageV3 is GovernorBravoDelegateStorageV2 {
     /// @notice Address which has the ability to cancel proposals
-    address public proposalGuardian;
+    address internal _proposalGuardian;
+
+    /// @notice Timestamp at which the proposalGuardian stored in the `_proposalGuardian` variable is set to expire
+    uint96 internal _proposalGuardianExpiry;
 }
 
 interface TimelockInterface {
