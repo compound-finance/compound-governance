@@ -687,10 +687,10 @@ describe("Governor Bravo", function () {
       const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
       const proposalId = await proposeAndPass(governorBravo);
 
-      await governorBravo._setProposalGuardian(
-        otherAccount,
-        (await time.latest()) + 1000
-      );
+      await governorBravo._setProposalGuardian({
+        account: otherAccount,
+        expiration: (await time.latest()) + 1000,
+      });
       await governorBravo.connect(otherAccount).cancel(proposalId);
     });
 
@@ -1228,42 +1228,49 @@ describe("Governor Bravo", function () {
     it("Set Proposal Guardian: admin only", async function () {
       const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
       await expect(
-        governorBravo
-          .connect(otherAccount)
-          ._setProposalGuardian(otherAccount, (await time.latest()) + 1000)
+        governorBravo.connect(otherAccount)._setProposalGuardian({
+          account: otherAccount,
+          expiration: (await time.latest()) + 1000,
+        })
       ).to.be.revertedWith("GovernorBravo::_setProposalGuardian: admin only");
-      expect(await governorBravo.proposalGuardian()).to.equal(
-        ethers.ZeroAddress
-      );
+      expect(await governorBravo.proposalGuardian()).to.deep.equal([
+        ethers.ZeroAddress,
+        0,
+      ]);
     });
 
     it("Set Proposal Guardian: happy path", async function () {
       const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
       const expiryTimestamp = (await time.latest()) + 1000;
       await expect(
-        governorBravo._setProposalGuardian(otherAccount, expiryTimestamp)
+        governorBravo._setProposalGuardian({
+          account: otherAccount,
+          expiration: expiryTimestamp,
+        })
       )
         .to.emit(governorBravo, "ProposalGuardianSet")
         .withArgs(ethers.ZeroAddress, 0, otherAccount.address, expiryTimestamp);
-      expect(await governorBravo.proposalGuardian()).to.equal(
-        otherAccount.address
-      );
+      expect(await governorBravo.proposalGuardian()).to.deep.equal([
+        otherAccount.address,
+        expiryTimestamp,
+      ]);
     });
 
-    it("Set Proposal Guardian: removed after expiration", async function () {
+    it("Set Proposal Guardian: proposal guardian abilities removed after expiration", async function () {
       const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+
+      const proposalId = await proposeAndPass(governorBravo);
+
       const expiryTimestamp = (await time.latest()) + 1000;
-
-      await governorBravo._setProposalGuardian(otherAccount, expiryTimestamp);
-
-      expect(await governorBravo.proposalGuardian()).to.equal(
-        otherAccount.address
-      );
+      await governorBravo._setProposalGuardian({
+        account: otherAccount,
+        expiration: expiryTimestamp,
+      });
 
       await time.increase(1001);
-      expect(await governorBravo.proposalGuardian()).to.equal(
-        ethers.ZeroAddress
-      );
+      await expect(
+        governorBravo.connect(otherAccount).cancel(proposalId)
+      ).to.be.revertedWith("GovernorBravo::cancel: proposer above threshold");
     });
   });
 
