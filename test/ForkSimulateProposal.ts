@@ -5,6 +5,7 @@ import {
   propose,
   getVoteWithReasonTypes,
   getTypedDomain,
+  proposeAndQueue,
 } from "./governanceHelpers";
 import {
   mine,
@@ -14,7 +15,8 @@ import {
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
 
-const PROPOSAL_ID = 196;
+const PROPOSAL_ID = 304;
+const COMMUNITY_MULTISIG = "0xbbf3f1421D886E9b2c5D716B5192aC998af2012c";
 
 describe("ForkTestSimulateUpgrade", function () {
   // Update the implementation of GovernorBravo before each test
@@ -33,13 +35,13 @@ describe("ForkTestSimulateUpgrade", function () {
       "0xc0Da02939E1441F497fd74F78cE7Decb17B66529"
     );
     const voter1 = await ethers.getSigner(
-      "0xea6c3db2e7fca00ea9d7211a03e83f568fc13bf7"
+      "0x7e959eab54932f5cfd10239160a7fd6474171318"
     );
     const voter2 = await ethers.getSigner(
       "0x9aa835bc7b8ce13b9b0c9764a52fbf71ac62ccf1"
     );
     const proposingSigner = await ethers.getSigner(
-      "0x2775b1c75658Be0F640272CCb8c72ac986009e38"
+      "0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B"
     );
     await hardhat.network.provider.send("hardhat_setBalance", [
       proposingSigner.address,
@@ -60,7 +62,7 @@ describe("ForkTestSimulateUpgrade", function () {
 
     await governorBravoDelegator.connect(voter1).castVote(PROPOSAL_ID, 1);
     await governorBravoDelegator.connect(voter2).castVote(PROPOSAL_ID, 1);
-    await mine(18683973 - (await ethers.provider.getBlockNumber()));
+    await mine(20533049 - (await ethers.provider.getBlockNumber()));
 
     await governorBravoDelegator.queue(PROPOSAL_ID);
 
@@ -185,5 +187,42 @@ describe("ForkTestSimulateUpgrade", function () {
     )
       .to.emit(governorBravoDelegator, "VoteCast")
       .withArgs(signer.address, proposalId, 1, BigInt("1000"), "Great Idea!");
+  });
+
+  it("Proposal Guardian Set Properly", async function () {
+    const { governorBravoDelegator } = await loadFixture(deployFixtures);
+    expect(await governorBravoDelegator.proposalGuardian()).to.deep.equal([
+      COMMUNITY_MULTISIG,
+      1739768400n,
+    ]);
+  });
+
+  it("Use Proposal Guardian", async function () {
+    const { governorBravoDelegator, proposingSigner } = await loadFixture(
+      deployFixtures
+    );
+
+    const [signer] = await ethers.getSigners();
+    const comptrollerAddress = "0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B";
+    const grantCompSelector = ethers
+      .id("_grantComp(address,uint256)")
+      .substring(0, 10);
+    const grantCompData =
+      grantCompSelector +
+      ethers.AbiCoder.defaultAbiCoder()
+        .encode(["address", "uint256"], [signer.address, 10000])
+        .slice(2);
+    const newProposalId = await proposeAndQueue(
+      governorBravoDelegator.connect(proposingSigner),
+      [comptrollerAddress],
+      [0],
+      [grantCompData],
+      "Grant COMP"
+    );
+
+    const multisigSigner = await ethers.getSigner(COMMUNITY_MULTISIG);
+    await impersonateAccount(await multisigSigner.getAddress());
+    await governorBravoDelegator.connect(multisigSigner).cancel(newProposalId);
+    expect(await governorBravoDelegator.state(newProposalId)).to.equal(2);
   });
 });
