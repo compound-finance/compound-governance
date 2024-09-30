@@ -683,6 +683,17 @@ describe("Governor Bravo", function () {
       await governorBravo.connect(otherAccount).cancel(proposalId);
     });
 
+    it("Happy path: guardian can cancel", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      const proposalId = await proposeAndPass(governorBravo);
+
+      await governorBravo._setProposalGuardian({
+        account: otherAccount,
+        expiration: (await time.latest()) + 1000,
+      });
+      await governorBravo.connect(otherAccount).cancel(proposalId);
+    });
+
     it("Error: above threshold", async function () {
       const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
       const proposalId = await proposeAndPass(governorBravo);
@@ -736,28 +747,6 @@ describe("Governor Bravo", function () {
         );
         const proposalId = await propose(governorBravo.connect(otherAccount));
 
-        await expect(governorBravo.cancel(proposalId)).to.be.revertedWith(
-          "GovernorBravo::cancel: whitelisted proposer"
-        );
-      });
-
-      it("Error: whitelisted proposer above threshold", async function () {
-        const { governorBravo, owner, otherAccount, comp } = await loadFixture(
-          deployFixtures
-        );
-
-        await governorBravo._setWhitelistAccountExpiration(
-          otherAccount,
-          (await time.latest()) + 1000
-        );
-        const proposalId = await propose(governorBravo.connect(otherAccount));
-        await comp.transfer(
-          otherAccount,
-          BigInt("100000") * BigInt("10") ** BigInt("18")
-        );
-        await comp.connect(otherAccount).delegate(otherAccount);
-
-        await governorBravo._setWhitelistGuardian(owner);
         await expect(governorBravo.cancel(proposalId)).to.be.revertedWith(
           "GovernorBravo::cancel: whitelisted proposer"
         );
@@ -1232,6 +1221,56 @@ describe("Governor Bravo", function () {
           .to.emit(governorBravo, "NewAdmin")
           .withArgs(owner.address, otherAccount.address);
       });
+    });
+  });
+
+  describe("Proposal Guardian", function () {
+    it("Set Proposal Guardian: admin only", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      await expect(
+        governorBravo.connect(otherAccount)._setProposalGuardian({
+          account: otherAccount,
+          expiration: (await time.latest()) + 1000,
+        })
+      ).to.be.revertedWith("GovernorBravo::_setProposalGuardian: admin only");
+      expect(await governorBravo.proposalGuardian()).to.deep.equal([
+        ethers.ZeroAddress,
+        0,
+      ]);
+    });
+
+    it("Set Proposal Guardian: happy path", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+      const expiryTimestamp = (await time.latest()) + 1000;
+      await expect(
+        governorBravo._setProposalGuardian({
+          account: otherAccount,
+          expiration: expiryTimestamp,
+        })
+      )
+        .to.emit(governorBravo, "ProposalGuardianSet")
+        .withArgs(ethers.ZeroAddress, 0, otherAccount.address, expiryTimestamp);
+      expect(await governorBravo.proposalGuardian()).to.deep.equal([
+        otherAccount.address,
+        expiryTimestamp,
+      ]);
+    });
+
+    it("Set Proposal Guardian: proposal guardian abilities removed after expiration", async function () {
+      const { governorBravo, otherAccount } = await loadFixture(deployFixtures);
+
+      const proposalId = await proposeAndPass(governorBravo);
+
+      const expiryTimestamp = (await time.latest()) + 1000;
+      await governorBravo._setProposalGuardian({
+        account: otherAccount,
+        expiration: expiryTimestamp,
+      });
+
+      await time.increase(1001);
+      await expect(
+        governorBravo.connect(otherAccount).cancel(proposalId)
+      ).to.be.revertedWith("GovernorBravo::cancel: proposer above threshold");
     });
   });
 

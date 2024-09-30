@@ -11,6 +11,7 @@ import {
   reset,
   impersonateAccount,
   loadFixture,
+  time,
 } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("ForkTestSimulateUpgrade", function () {
@@ -30,7 +31,7 @@ describe("ForkTestSimulateUpgrade", function () {
       "0xc0Da02939E1441F497fd74F78cE7Decb17B66529"
     );
     const proposingSigner = await ethers.getSigner(
-      "0x2775b1c75658Be0F640272CCb8c72ac986009e38"
+      "0xF977814e90dA44bFA03b6295A0616a897441aceC"
     );
     await hardhat.network.provider.send("hardhat_setBalance", [
       proposingSigner.address,
@@ -109,6 +110,9 @@ describe("ForkTestSimulateUpgrade", function () {
     expect(await governorBravoDelegator.timelock()).to.equal(
       "0x6d903f6003cca6255D85CcA4D3B5E5146dC33925"
     );
+    expect(await governorBravoDelegator.whitelistGuardian()).to.equal(
+      "0xbbf3f1421D886E9b2c5D716B5192aC998af2012c"
+    );
   });
 
   it("Grant COMP proposal", async function () {
@@ -175,5 +179,39 @@ describe("ForkTestSimulateUpgrade", function () {
     )
       .to.emit(governorBravoDelegator, "VoteCast")
       .withArgs(signer.address, proposalId, 1, BigInt("1000"), "Great Idea!");
+  });
+
+  it("Set proposal guardian", async function () {
+    const { governorBravoDelegator, proposingSigner } = await loadFixture(
+      deployFixtures
+    );
+    const [signer] = await ethers.getSigners();
+    const setProposalGuardianSelector = ethers
+      .id("_setProposalGuardian((address,uint96))")
+      .substring(0, 10);
+    const expirationTimestamp = (await time.latest()) + 6 * 30 * 24 * 60 * 60; // Expire in 6 months
+    const setProposalGuardianData =
+      setProposalGuardianSelector +
+      ethers.AbiCoder.defaultAbiCoder()
+        .encode(["address", "uint96"], [signer.address, expirationTimestamp])
+        .slice(2);
+
+    expect(await governorBravoDelegator.proposalGuardian()).to.deep.equal([
+      ethers.ZeroAddress,
+      0,
+    ]);
+
+    await proposeAndExecute(
+      governorBravoDelegator.connect(proposingSigner),
+      [await governorBravoDelegator.getAddress()],
+      [0],
+      [setProposalGuardianData],
+      "Set Proposal Guardian"
+    );
+
+    expect(await governorBravoDelegator.proposalGuardian()).to.deep.equal([
+      signer.address,
+      expirationTimestamp,
+    ]);
   });
 });

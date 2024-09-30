@@ -8,3 +8,4 @@ cache
 artifacts
 yarn-error.log
 .DS_Store
+yarn.lock

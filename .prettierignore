@@ -2,5 +2,10 @@ node_modules
 artifacts
 cache
 coverage*
-contracts*
+contracts/test*
+contracts/SafeMath.sol
+contracts/Timelock.sol
+contracts/Comp.sol
+contracts/GovernorBravoDelegator.sol
+contracts/GovernorBravoInterfaces.sol
 typechain-types
