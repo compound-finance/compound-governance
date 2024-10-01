@@ -4,3 +4,5 @@ cache
 coverage*
 contracts*
 typechain-types
+out
+lib

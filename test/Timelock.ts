@@ -17,7 +17,7 @@ describe("Timelock", function () {
     timelock: Timelock,
     target: AddressLike,
     value: bigint,
-    callDatas: string
+    callDatas: string,
   ): Promise<[AddressLike, bigint, string, string, bigint]> {
     const eta =
       BigInt(await time.latest()) + BigInt((await timelock.delay()) + 1n);
@@ -31,12 +31,12 @@ describe("Timelock", function () {
       const [owner] = await ethers.getSigners();
       const Timelock = await ethers.getContractFactory("Timelock");
       await expect(Timelock.deploy(owner, 0)).to.be.revertedWith(
-        "Timelock::constructor: Delay must exceed minimum delay."
+        "Timelock::constructor: Delay must exceed minimum delay.",
       );
       await expect(
-        Timelock.deploy(owner, 30 * 24 * 60 * 60 + 1)
+        Timelock.deploy(owner, 30 * 24 * 60 * 60 + 1),
       ).to.be.revertedWith(
-        "Timelock::setDelay: Delay must not exceed maximum delay."
+        "Timelock::setDelay: Delay must not exceed maximum delay.",
       );
     });
   });
@@ -49,8 +49,8 @@ describe("Timelock", function () {
       ).data;
       await expect(
         timelock.executeTransaction(
-          ...(await queueAndExecute(timelock, timelock, 0n, calldata))
-        )
+          ...(await queueAndExecute(timelock, timelock, 0n, calldata)),
+        ),
       )
         .to.emit(timelock, "NewDelay")
         .withArgs(3 * 24 * 60 * 60 + 1);
@@ -59,7 +59,7 @@ describe("Timelock", function () {
     it("Admin only", async function () {
       const { timelock } = await loadFixture(deployFixtures);
       await expect(timelock.setDelay(3 * 24 * 60 * 60 + 1)).to.be.revertedWith(
-        "Timelock::setDelay: Call must come from Timelock."
+        "Timelock::setDelay: Call must come from Timelock.",
       );
     });
 
@@ -68,10 +68,10 @@ describe("Timelock", function () {
       let calldata = (await timelock.setDelay.populateTransaction(1)).data;
       await expect(
         timelock.executeTransaction(
-          ...(await queueAndExecute(timelock, timelock, 0n, calldata))
-        )
+          ...(await queueAndExecute(timelock, timelock, 0n, calldata)),
+        ),
       ).to.be.revertedWith(
-        "Timelock::executeTransaction: Transaction execution reverted."
+        "Timelock::executeTransaction: Transaction execution reverted.",
       );
 
       calldata = (
@@ -79,10 +79,10 @@ describe("Timelock", function () {
       ).data;
       await expect(
         timelock.executeTransaction(
-          ...(await queueAndExecute(timelock, timelock, 0n, calldata))
-        )
+          ...(await queueAndExecute(timelock, timelock, 0n, calldata)),
+        ),
       ).to.be.revertedWith(
-        "Timelock::executeTransaction: Transaction execution reverted."
+        "Timelock::executeTransaction: Transaction execution reverted.",
       );
     });
   });
@@ -95,8 +95,8 @@ describe("Timelock", function () {
       ).data;
       await expect(
         timelock.executeTransaction(
-          ...(await queueAndExecute(timelock, timelock, 0n, calldata))
-        )
+          ...(await queueAndExecute(timelock, timelock, 0n, calldata)),
+        ),
       )
         .to.emit(timelock, "NewPendingAdmin")
         .withArgs(otherAccount.address);
@@ -110,10 +110,10 @@ describe("Timelock", function () {
       const { timelock, otherAccount } = await loadFixture(deployFixtures);
 
       await expect(timelock.setPendingAdmin(otherAccount)).to.be.revertedWith(
-        "Timelock::setPendingAdmin: Call must come from Timelock."
+        "Timelock::setPendingAdmin: Call must come from Timelock.",
       );
       await expect(timelock.acceptAdmin()).to.be.revertedWith(
-        "Timelock::acceptAdmin: Call must come from pendingAdmin."
+        "Timelock::acceptAdmin: Call must come from pendingAdmin.",
       );
     });
   });
@@ -124,9 +124,9 @@ describe("Timelock", function () {
       await expect(
         timelock
           .connect(otherAccount)
-          .cancelTransaction(timelock, 0, "", "0x", 0)
+          .cancelTransaction(timelock, 0, "", "0x", 0),
       ).to.be.revertedWith(
-        "Timelock::cancelTransaction: Call must come from admin."
+        "Timelock::cancelTransaction: Call must come from admin.",
       );
     });
 
@@ -136,7 +136,7 @@ describe("Timelock", function () {
         BigInt(await time.latest()) + BigInt((await timelock.delay()) + 1n);
       await timelock.queueTransaction(timelock, 0, "", "0x", eta);
       await expect(
-        timelock.cancelTransaction(timelock, 0, "", "0x", eta)
+        timelock.cancelTransaction(timelock, 0, "", "0x", eta),
       ).to.emit(timelock, "CancelTransaction");
     });
   });
@@ -147,18 +147,18 @@ describe("Timelock", function () {
       await expect(
         timelock
           .connect(otherAccount)
-          .queueTransaction(timelock, 0, "", "0x", 0)
+          .queueTransaction(timelock, 0, "", "0x", 0),
       ).to.be.revertedWith(
-        "Timelock::queueTransaction: Call must come from admin."
+        "Timelock::queueTransaction: Call must come from admin.",
       );
     });
 
     it("Eta delay must be fulfilled", async function () {
       const { timelock } = await loadFixture(deployFixtures);
       await expect(
-        timelock.queueTransaction(timelock, 0, "", "0x", 0)
+        timelock.queueTransaction(timelock, 0, "", "0x", 0),
       ).to.be.revertedWith(
-        "Timelock::queueTransaction: Estimated execution block must satisfy delay."
+        "Timelock::queueTransaction: Estimated execution block must satisfy delay.",
       );
     });
 
@@ -175,7 +175,7 @@ describe("Timelock", function () {
       const { timelock, otherAccount } = await loadFixture(deployFixtures);
       const calldata = ethers.AbiCoder.defaultAbiCoder().encode(
         ["address"],
-        [otherAccount.address]
+        [otherAccount.address],
       );
       const eta =
         BigInt(await time.latest()) + BigInt((await timelock.delay()) + 1n);
@@ -184,7 +184,7 @@ describe("Timelock", function () {
         0,
         "setPendingAdmin(address)",
         calldata,
-        eta
+        eta,
       );
       await time.increaseTo(eta);
       await expect(
@@ -193,8 +193,8 @@ describe("Timelock", function () {
           0,
           "setPendingAdmin(address)",
           calldata,
-          eta
-        )
+          eta,
+        ),
       )
         .to.emit(timelock, "NewPendingAdmin")
         .withArgs(otherAccount.address);
@@ -204,7 +204,7 @@ describe("Timelock", function () {
       const { timelock, otherAccount } = await loadFixture(deployFixtures);
       const calldata = ethers.AbiCoder.defaultAbiCoder().encode(
         ["address"],
-        [otherAccount.address]
+        [otherAccount.address],
       );
       const eta =
         BigInt(await time.latest()) + BigInt((await timelock.delay()) + 1n);
@@ -215,10 +215,10 @@ describe("Timelock", function () {
           0,
           "setPendingAdmin(address)",
           calldata,
-          eta
-        )
+          eta,
+        ),
       ).to.be.revertedWith(
-        "Timelock::executeTransaction: Transaction hasn't been queued."
+        "Timelock::executeTransaction: Transaction hasn't been queued.",
       );
     });
 
@@ -226,7 +226,7 @@ describe("Timelock", function () {
       const { timelock, otherAccount } = await loadFixture(deployFixtures);
       const calldata = ethers.AbiCoder.defaultAbiCoder().encode(
         ["address"],
-        [otherAccount.address]
+        [otherAccount.address],
       );
       const eta =
         BigInt(await time.latest()) + BigInt((await timelock.delay()) + 1n);
@@ -235,7 +235,7 @@ describe("Timelock", function () {
         0,
         "setPendingAdmin(address)",
         calldata,
-        eta
+        eta,
       );
       await expect(
         timelock.executeTransaction(
@@ -243,10 +243,10 @@ describe("Timelock", function () {
           0,
           "setPendingAdmin(address)",
           calldata,
-          eta
-        )
+          eta,
+        ),
       ).to.be.revertedWith(
-        "Timelock::executeTransaction: Transaction hasn't surpassed time lock."
+        "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
       );
     });
 
@@ -256,15 +256,15 @@ describe("Timelock", function () {
         timelock,
         timelock,
         0n,
-        "0x"
+        "0x",
       );
       const gracePeriod = await timelock.GRACE_PERIOD();
       await time.increase(gracePeriod + 20n);
 
       await expect(
-        timelock.executeTransaction(...executionParams)
+        timelock.executeTransaction(...executionParams),
       ).to.be.revertedWith(
-        "Timelock::executeTransaction: Transaction is stale."
+        "Timelock::executeTransaction: Transaction is stale.",
       );
     });
 
@@ -273,9 +273,9 @@ describe("Timelock", function () {
       await expect(
         timelock
           .connect(otherAccount)
-          .executeTransaction(timelock, 0, "", "0x", 0)
+          .executeTransaction(timelock, 0, "", "0x", 0),
       ).to.be.revertedWith(
-        "Timelock::executeTransaction: Call must come from admin."
+        "Timelock::executeTransaction: Call must come from admin.",
       );
     });
   });

@@ -23,14 +23,14 @@ describe("ForkTestSimulateUpgrade", function () {
 
     const comp = await ethers.getContractAt(
       "Comp",
-      "0xc00e94Cb662C3520282E6f5717214004A7f26888"
+      "0xc00e94Cb662C3520282E6f5717214004A7f26888",
     );
     const governorBravoDelegator = await ethers.getContractAt(
       "GovernorBravoDelegate",
-      "0xc0Da02939E1441F497fd74F78cE7Decb17B66529"
+      "0xc0Da02939E1441F497fd74F78cE7Decb17B66529",
     );
     const proposingSigner = await ethers.getSigner(
-      "0x2775b1c75658Be0F640272CCb8c72ac986009e38"
+      "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
     );
     await hardhat.network.provider.send("hardhat_setBalance", [
       proposingSigner.address,
@@ -40,7 +40,7 @@ describe("ForkTestSimulateUpgrade", function () {
     await impersonateAccount(await proposingSigner.getAddress());
     await comp.connect(proposingSigner).delegate(proposingSigner);
     const NewImplementation = await ethers.getContractFactory(
-      "GovernorBravoDelegate"
+      "GovernorBravoDelegate",
     );
     const newImplementation = await NewImplementation.deploy();
 
@@ -55,7 +55,7 @@ describe("ForkTestSimulateUpgrade", function () {
             .encode(["address"], [await newImplementation.getAddress()])
             .slice(2),
       ],
-      "Upgrade Governance"
+      "Upgrade Governance",
     );
 
     return { comp, governorBravoDelegator, proposingSigner };
@@ -98,23 +98,22 @@ describe("ForkTestSimulateUpgrade", function () {
   it("validate storage fields", async function () {
     const { governorBravoDelegator } = await loadFixture(deployFixtures);
     expect(await governorBravoDelegator.admin()).to.equal(
-      "0x6d903f6003cca6255D85CcA4D3B5E5146dC33925"
+      "0x6d903f6003cca6255D85CcA4D3B5E5146dC33925",
     );
     expect(await governorBravoDelegator.pendingAdmin()).to.equal(
-      ethers.ZeroAddress
+      ethers.ZeroAddress,
     );
     expect(await governorBravoDelegator.comp()).to.equal(
-      "0xc00e94Cb662C3520282E6f5717214004A7f26888"
+      "0xc00e94Cb662C3520282E6f5717214004A7f26888",
     );
     expect(await governorBravoDelegator.timelock()).to.equal(
-      "0x6d903f6003cca6255D85CcA4D3B5E5146dC33925"
+      "0x6d903f6003cca6255D85CcA4D3B5E5146dC33925",
     );
   });
 
   it("Grant COMP proposal", async function () {
-    const { comp, governorBravoDelegator, proposingSigner } = await loadFixture(
-      deployFixtures
-    );
+    const { comp, governorBravoDelegator, proposingSigner } =
+      await loadFixture(deployFixtures);
     const [signer] = await ethers.getSigners();
     const comptrollerAddress = "0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B";
     const grantCompSelector = ethers
@@ -131,16 +130,15 @@ describe("ForkTestSimulateUpgrade", function () {
       [comptrollerAddress],
       [0],
       [grantCompData],
-      "Grant COMP"
+      "Grant COMP",
     );
 
     expect(await comp.balanceOf(signer.address)).to.equal(10000);
   });
 
   it("Cast vote by sig with reason", async function () {
-    const { comp, governorBravoDelegator, proposingSigner } = await loadFixture(
-      deployFixtures
-    );
+    const { comp, governorBravoDelegator, proposingSigner } =
+      await loadFixture(deployFixtures);
     const [signer, otherSigner] = await ethers.getSigners();
     await comp.delegate(signer);
     await comp.connect(proposingSigner).transfer(signer.address, 1000);
@@ -149,14 +147,12 @@ describe("ForkTestSimulateUpgrade", function () {
       [governorBravoDelegator],
       [0],
       ["0x"],
-      "Test Proposal"
+      "Test Proposal",
     );
 
     const domain = await getTypedDomain(
       governorBravoDelegator,
-      (
-        await ethers.provider.getNetwork()
-      ).chainId
+      (await ethers.provider.getNetwork()).chainId,
     );
 
     const sig = await signer.signTypedData(domain, getVoteWithReasonTypes(), {
@@ -171,7 +167,7 @@ describe("ForkTestSimulateUpgrade", function () {
     await expect(
       governorBravoDelegator
         .connect(otherSigner)
-        .castVoteWithReasonBySig(proposalId, 1, "Great Idea!", v, r, s)
+        .castVoteWithReasonBySig(proposalId, 1, "Great Idea!", v, r, s),
     )
       .to.emit(governorBravoDelegator, "VoteCast")
       .withArgs(signer.address, proposalId, 1, BigInt("1000"), "Great Idea!");

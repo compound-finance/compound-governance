@@ -17,14 +17,14 @@ export async function propose(
   targets: AddressLike[] = [ethers.ZeroAddress],
   values: BigNumberish[] = [0],
   callDatas: string[] = ["0x"],
-  description = "Test Proposal"
+  description = "Test Proposal",
 ): Promise<bigint> {
   const tx = await governor.propose(
     targets,
     values,
     Array(values.length).fill(""),
     callDatas,
-    description
+    description,
   );
 
   await mine((await governor.votingDelay()) + 1n);
@@ -38,14 +38,14 @@ export async function proposeAndPass(
   targets: AddressLike[] = [ethers.ZeroAddress],
   values: BigNumberish[] = [0],
   callDatas: string[] = ["0x"],
-  description = "Test Proposal"
+  description = "Test Proposal",
 ): Promise<bigint> {
   const proposalId = await propose(
     governor,
     targets,
     values,
     callDatas,
-    description
+    description,
   );
   await governor.castVote(proposalId, 1);
 
@@ -68,14 +68,14 @@ export async function proposeAndQueue(
   targets: AddressLike[] = [ethers.ZeroAddress],
   values: BigNumberish[] = [0],
   callDatas: string[] = ["0x"],
-  description = "Test Proposal"
+  description = "Test Proposal",
 ): Promise<bigint> {
   const proposalId = await proposeAndPass(
     governor,
     targets,
     values,
     callDatas,
-    description
+    description,
   );
 
   await governor.queue(proposalId);
@@ -97,20 +97,20 @@ export async function proposeAndExecute(
   targets: AddressLike[] = [ethers.ZeroAddress],
   values: BigNumberish[] = [0],
   callDatas: string[] = ["0x"],
-  description = "Test Proposal"
+  description = "Test Proposal",
 ): Promise<bigint> {
   const proposalId = await proposeAndQueue(
     governor,
     targets,
     values,
     callDatas,
-    description
+    description,
   );
   await time.increase(
     await ethers.provider.call({
       to: await governor.timelock(),
       data: ethers.id("delay()").substring(0, 10),
-    })
+    }),
   );
   await governor.execute(proposalId);
   return proposalId;
@@ -128,7 +128,7 @@ export async function setupGovernorAlpha() {
   const governorAlpha: GovernorAlpha = (await GovernorAlpha.deploy(
     timelock,
     comp,
-    owner
+    owner,
   )) as unknown as GovernorAlpha;
 
   const eta =
@@ -148,14 +148,14 @@ export async function setupGovernorAlpha() {
 export async function setupGovernorBravo(
   timelock: Timelock,
   comp: Comp,
-  governorAlpha: GovernorAlpha
+  governorAlpha: GovernorAlpha,
 ) {
   const [owner] = await ethers.getSigners();
   const GovernorBravoDelegator = await ethers.getContractFactory(
-    "GovernorBravoDelegator"
+    "GovernorBravoDelegator",
   );
   const GovernorBravoDelegate = await ethers.getContractFactory(
-    "GovernorBravoDelegate"
+    "GovernorBravoDelegate",
   );
 
   const governorBravoDelegate = await GovernorBravoDelegate.deploy();
@@ -167,7 +167,7 @@ export async function setupGovernorBravo(
       governorBravoDelegate,
       5760,
       100,
-      1000n * 10n ** 18n
+      1000n * 10n ** 18n,
     )) as unknown as GovernorBravoDelegate;
   await comp.delegate(owner);
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -179,7 +179,7 @@ export async function setupGovernorBravo(
     [timelock],
     [0n],
     [txData],
-    "Transfer admin for bravo"
+    "Transfer admin for bravo",
   );
   await governorAlpha.castVote(await governorAlpha.votingDelay(), true);
   await mine(await governorAlpha.votingPeriod());
@@ -187,7 +187,7 @@ export async function setupGovernorBravo(
   await time.increase(await timelock.MINIMUM_DELAY());
   await governorAlpha.execute(1);
   governorBravo = GovernorBravoDelegate.attach(
-    await governorBravo.getAddress()
+    await governorBravo.getAddress(),
   ) as GovernorBravoDelegate;
   await governorBravo._initiate(governorAlpha);
 
@@ -222,7 +222,7 @@ export function getVoteWithReasonTypes() {
 
 export async function getTypedDomainComp(
   address: Addressable,
-  chainId: bigint
+  chainId: bigint,
 ) {
   return {
     name: "Compound",
