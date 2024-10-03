@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.18;
+pragma solidity 0.8.26;
 
 import {Test, console2} from "forge-std/Test.sol";
 
