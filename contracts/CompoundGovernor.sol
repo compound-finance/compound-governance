@@ -33,7 +33,7 @@ contract CompoundGovernor is
 {
     /// @notice The number of votes supporting a proposal required for quorum for a vote to succeed
     /// TODO: This will be replaced as a settable quorum in a future PR.
-    uint256 public constant quorumVotes = 400_000e18; // 400,000 = 4% of Comp
+    uint256 public quorumVotes;
 
     /// @notice Disables the initialize function.
     constructor() {
@@ -41,30 +41,31 @@ contract CompoundGovernor is
     }
 
     /// @notice Initialize Governor.
-    /// @param _name The name of the Governor.
     /// @param _initialVotingDelay The initial voting delay.
     /// @param _initialVotingPeriod The initial voting period.
     /// @param _initialProposalThreshold The initial proposal threshold.
     /// @param _compAddress The address of the Comp token.
+    /// @param _quorumVotes The quorum votes.
     /// @param _timelockAddress The address of the Timelock.
     /// @param _initialVoteExtension The initial vote extension.
     /// @param _initialOwner The initial owner of the Governor.
     function initialize(
-        string memory _name,
         uint48 _initialVotingDelay,
         uint32 _initialVotingPeriod,
         uint256 _initialProposalThreshold,
         IVotes _compAddress,
+        uint256 _quorumVotes,
         ICompoundTimelock _timelockAddress,
         uint48 _initialVoteExtension,
         address _initialOwner
     ) public initializer {
-        __Governor_init(_name);
+        __Governor_init("Compound Governor");
         __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold);
         __GovernorVotes_init(_compAddress);
         __GovernorTimelockCompound_init(_timelockAddress);
         __GovernorPreventLateQuorum_init(_initialVoteExtension);
         __Ownable_init(_initialOwner);
+        quorumVotes = _quorumVotes;
     }
 
     /// @inheritdoc GovernorTimelockCompoundUpgradeable
@@ -179,7 +180,7 @@ contract CompoundGovernor is
     /// @notice Calculates the quorum size, excludes token delegated to the exclude address.
     /// @dev We override this function to use the circulating supply to calculate the quorum.
     /// @return The quorum size.
-    function quorum(uint256) public pure override(GovernorUpgradeable) returns (uint256) {
+    function quorum(uint256) public view override(GovernorUpgradeable) returns (uint256) {
         return quorumVotes;
     }
 }
