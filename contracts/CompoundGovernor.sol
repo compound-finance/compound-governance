@@ -7,6 +7,7 @@ import {GovernorVotesUpgradeable} from
     "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorVotesUpgradeable.sol";
 import {GovernorCountingSimpleUpgradeable} from
     "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
+import {GovernorSettableFixedQuorumUpgradeable} from "contracts/extensions/GovernorSettableFixedQuorumUpgradeable.sol";
 import {GovernorTimelockCompoundUpgradeable} from
     "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorTimelockCompoundUpgradeable.sol";
 import {ICompoundTimelock} from "@openzeppelin/contracts/vendor/compound/ICompoundTimelock.sol";
@@ -29,12 +30,9 @@ contract CompoundGovernor is
     GovernorSettingsUpgradeable,
     GovernorCountingSimpleUpgradeable,
     GovernorPreventLateQuorumUpgradeable,
+    GovernorSettableFixedQuorumUpgradeable,
     OwnableUpgradeable
 {
-    /// @notice The number of votes supporting a proposal required for quorum for a vote to succeed
-    /// TODO: This will be replaced as a settable quorum in a future PR.
-    uint256 public quorumVotes;
-
     /// @notice Disables the initialize function.
     constructor() {
         _disableInitializers();
@@ -64,8 +62,8 @@ contract CompoundGovernor is
         __GovernorVotes_init(_compAddress);
         __GovernorTimelockCompound_init(_timelockAddress);
         __GovernorPreventLateQuorum_init(_initialVoteExtension);
+        __GovernorSettableFixedQuorum_init(_quorumVotes);
         __Ownable_init(_initialOwner);
-        quorumVotes = _quorumVotes;
     }
 
     /// @inheritdoc GovernorTimelockCompoundUpgradeable
@@ -175,12 +173,5 @@ contract CompoundGovernor is
         returns (ProposalState)
     {
         return GovernorTimelockCompoundUpgradeable.state(_proposalId);
-    }
-
-    /// @notice Calculates the quorum size, excludes token delegated to the exclude address.
-    /// @dev We override this function to use the circulating supply to calculate the quorum.
-    /// @return The quorum size.
-    function quorum(uint256) public view override(GovernorUpgradeable) returns (uint256) {
-        return quorumVotes;
     }
 }

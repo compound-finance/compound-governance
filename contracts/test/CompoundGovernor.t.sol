@@ -9,6 +9,7 @@ import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 contract CompoundGovernorTest is Test, CompoundGovernorConstants {
     CompoundGovernor governor;
     address owner;
+    
 
     function setUp() public {
         // set the owner of the governor (use the anvil default account #0, if no environment variable is set)
@@ -24,7 +25,7 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
     }
 
     function testInitialize() public view {
-        assertEq(governor.quorumVotes(), INITIAL_QUORUM);
+        assertEq(governor.quorum(governor.clock()), INITIAL_QUORUM);
         assertEq(governor.votingPeriod(), INITIAL_VOTING_PERIOD);
         assertEq(governor.votingDelay(), INITIAL_VOTING_DELAY);
         assertEq(governor.proposalThreshold(), INITIAL_PROPOSAL_THRESHOLD);
