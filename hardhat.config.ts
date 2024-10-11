@@ -15,6 +15,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
+          evmVersion: "cancun",
         },
       },
       {
@@ -24,6 +25,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
+          evmVersion: "cancun",
         },
       },
       {
@@ -33,6 +35,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
+          evmVersion: "cancun",
         },
       },
     ],
