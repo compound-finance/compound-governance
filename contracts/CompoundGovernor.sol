@@ -3,8 +3,7 @@ pragma solidity 0.8.26;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {GovernorUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/GovernorUpgradeable.sol";
-import {GovernorVotesUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorVotesUpgradeable.sol";
+import {GovernorVotesCompUpgradeable} from "contracts/extensions/GovernorVotesCompUpgradeable.sol";
 import {GovernorSettableFixedQuorumUpgradeable} from "contracts/extensions/GovernorSettableFixedQuorumUpgradeable.sol";
 import {GovernorCountingFractionalUpgradeable} from
     "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorCountingFractionalUpgradeable.sol";
@@ -16,7 +15,7 @@ import {GovernorSettingsUpgradeable} from
 import {GovernorPreventLateQuorumUpgradeable} from
     "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorPreventLateQuorumUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {IComp} from "contracts/interfaces/IComp.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /// @title CompoundGovernor
@@ -25,7 +24,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 /// @custom:security-contact TODO: Add security contact
 contract CompoundGovernor is
     Initializable,
-    GovernorVotesUpgradeable,
+    GovernorVotesCompUpgradeable,
     GovernorTimelockCompoundUpgradeable,
     GovernorSettingsUpgradeable,
     GovernorCountingFractionalUpgradeable,
@@ -51,7 +50,7 @@ contract CompoundGovernor is
         uint48 _initialVotingDelay,
         uint32 _initialVotingPeriod,
         uint256 _initialProposalThreshold,
-        IVotes _compAddress,
+        IComp _compAddress,
         uint256 _quorumVotes,
         ICompoundTimelock _timelockAddress,
         uint48 _initialVoteExtension,
@@ -59,7 +58,7 @@ contract CompoundGovernor is
     ) public initializer {
         __Governor_init("Compound Governor");
         __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold);
-        __GovernorVotes_init(_compAddress);
+        __GovernorVotesComp_init(_compAddress);
         __GovernorTimelockCompound_init(_timelockAddress);
         __GovernorPreventLateQuorum_init(_initialVoteExtension);
         __GovernorSettableFixedQuorum_init(_quorumVotes);
