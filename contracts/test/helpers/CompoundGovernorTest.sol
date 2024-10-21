@@ -2,16 +2,19 @@
 pragma solidity 0.8.26;
 
 import {Test, console2} from "forge-std/Test.sol";
+import {ICompoundTimelock} from "@openzeppelin/contracts/vendor/compound/ICompoundTimelock.sol";
 import {CompoundGovernorConstants} from "script/CompoundGovernorConstants.sol";
 import {DeployCompoundGovernor} from "script/DeployCompoundGovernor.s.sol";
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
+import {IComp} from "contracts/interfaces/IComp.sol";
 
 contract CompoundGovernorTest is Test, CompoundGovernorConstants {
     CompoundGovernor governor;
+    IComp token;
+    ICompoundTimelock timelock;
     address owner;
-    
 
-    function setUp() public {
+    function setUp() public virtual {
         // set the owner of the governor (use the anvil default account #0, if no environment variable is set)
         owner = vm.envOr("DEPLOYER_ADDRESS", 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
 
@@ -22,16 +25,16 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         DeployCompoundGovernor _deployer = new DeployCompoundGovernor();
         _deployer.setUp();
         governor = _deployer.run(owner);
+        token = governor.token();
+        timelock = ICompoundTimelock(payable(governor.timelock()));
     }
 
-    function testInitialize() public view {
-        assertEq(governor.quorum(governor.clock()), INITIAL_QUORUM);
-        assertEq(governor.votingPeriod(), INITIAL_VOTING_PERIOD);
-        assertEq(governor.votingDelay(), INITIAL_VOTING_DELAY);
-        assertEq(governor.proposalThreshold(), INITIAL_PROPOSAL_THRESHOLD);
-        assertEq(governor.lateQuorumVoteExtension(), INITIAL_VOTE_EXTENSION);
-        assertEq(address(governor.timelock()), TIMELOCK_ADDRESS);
-        assertEq(address(governor.token()), COMP_TOKEN_ADDRESS);
-        assertEq(governor.owner(), owner);
+    function _updateTimelockAdminToNewGovernor(CompoundGovernor _newGovernor) internal {
+        address _timelockAddress = governor.timelock();
+        ICompoundTimelock _timelock = ICompoundTimelock(payable(_timelockAddress));
+        vm.prank(_timelockAddress);
+        _timelock.setPendingAdmin(address(_newGovernor));
+        vm.prank(address(_newGovernor));
+        _timelock.acceptAdmin();
     }
 }
