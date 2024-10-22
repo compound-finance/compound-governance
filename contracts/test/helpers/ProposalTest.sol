@@ -53,6 +53,19 @@ contract ProposalTest is CompoundGovernorTest {
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_DELAY + 1);
     }
 
+    function _passAndQueueProposal(Proposal memory _proposal, uint256 _proposalId) public {
+        uint256 _timeLockDelay = timelock.delay();
+        vm.prank(delegatee);
+        governor.castVote(_proposalId, uint8(GovernorCountingSimpleUpgradeable.VoteType.For));
+
+        vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
+        governor.queue(
+            _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
+        );
+
+        vm.warp(block.timestamp + _timeLockDelay + 1);
+    }
+
     function _passQueueAndExecuteProposal(Proposal memory _proposal, uint256 _proposalId) public {
         uint256 _timeLockDelay = timelock.delay();
         vm.prank(delegatee);
@@ -74,6 +87,11 @@ contract ProposalTest is CompoundGovernorTest {
         governor.castVote(_proposalId, uint8(GovernorCountingSimpleUpgradeable.VoteType.Against));
 
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
+    }
+
+    function _submitPassAndQueueProposal(address _proposer, Proposal memory _proposal) public {
+        uint256 _proposalId = _submitProposal(_proposer, _proposal);
+        _passAndQueueProposal(_proposal, _proposalId);
     }
 
     function _submitPassQueueAndExecuteProposal(address _proposer, Proposal memory _proposal) public {

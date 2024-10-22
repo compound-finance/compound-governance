@@ -13,5 +13,9 @@ contract CompoundGovernorInitializeTest is CompoundGovernorTest {
         assertEq(address(governor.timelock()), TIMELOCK_ADDRESS);
         assertEq(address(governor.token()), COMP_TOKEN_ADDRESS);
         assertEq(governor.owner(), owner);
+        assertEq(governor.whitelistGuardian(), whitelistGuardian);
+        (address _proposalGuardian, uint96 _expiration) = governor.proposalGuardian();
+        assertEq(_proposalGuardian, proposalGuardian.account);
+        assertEq(_expiration, proposalGuardian.expiration);
     }
 }

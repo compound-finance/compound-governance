@@ -32,6 +32,53 @@ contract CompoundGovernor is
     GovernorSettableFixedQuorumUpgradeable,
     OwnableUpgradeable
 {
+    /// @notice Emitted when the expiration of a whitelisted account is set or updated.
+    /// @param account The address of the account being whitelisted.
+    /// @param expiration The timestamp until which the account is whitelisted.
+    event WhitelistAccountExpirationSet(address account, uint256 expiration);
+
+    /// @notice Emitted when the whitelistGuardian is set or changed.
+    /// @param oldGuardian The address of the previous whitelistGuardian.
+    /// @param newGuardian The address of the new whitelistGuardian.
+    event WhitelistGuardianSet(address oldGuardian, address newGuardian);
+
+    /// @notice Emitted when the proposal guardian is set or updated.
+    /// @param oldProposalGuardian The address of the previous proposal guardian.
+    /// @param oldProposalGuardianExpiry The expiration timestamp of the previous proposal guardian's role.
+    /// @param newProposalGuardian The address of the new proposal guardian.
+    /// @param newProposalGuardianExpiry The expiration timestamp of the new proposal guardian's role.
+    event ProposalGuardianSet(
+        address oldProposalGuardian,
+        uint96 oldProposalGuardianExpiry,
+        address newProposalGuardian,
+        uint96 newProposalGuardianExpiry
+    );
+
+    /// @notice Error thrown when an unauthorized address attempts to perform a restricted action.
+    /// @param reason A brief description of why the caller is unauthorized.
+    /// @param caller The address that attempted the unauthorized action.
+    error Unauthorized(bytes32 reason, address caller);
+
+    /// @notice The address and expiration of the proposal guardian.
+    struct ProposalGuardian {
+        // Address of the `ProposalGuardian`
+        address account;
+        // Timestamp at which the guardian loses the ability to cancel proposals
+        uint96 expiration;
+    }
+
+    /// @notice Address which manages whitelisted proposals and whitelist accounts.
+    /// @dev This address has the ability to set account whitelist expirations and can be changed through the governance
+    /// process.
+    address public whitelistGuardian;
+
+    /// @notice Account which has the ability to cancel proposals. This privilege expires at the given expiration
+    /// timestamp.
+    ProposalGuardian public proposalGuardian;
+
+    /// @notice Stores the expiration of account whitelist status as a timestamp.
+    mapping(address account => uint256 timestamp) public whitelistAccountExpirations;
+
     /// @notice Disables the initialize function.
     constructor() {
         _disableInitializers();
@@ -54,7 +101,9 @@ contract CompoundGovernor is
         uint256 _quorumVotes,
         ICompoundTimelock _timelockAddress,
         uint48 _initialVoteExtension,
-        address _initialOwner
+        address _initialOwner,
+        address _whitelistGuardian,
+        ProposalGuardian calldata _proposalGuardian
     ) public initializer {
         __Governor_init("Compound Governor");
         __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold);
@@ -63,6 +112,75 @@ contract CompoundGovernor is
         __GovernorPreventLateQuorum_init(_initialVoteExtension);
         __GovernorSettableFixedQuorum_init(_quorumVotes);
         __Ownable_init(_initialOwner);
+        _setWhitelistGuardian(_whitelistGuardian);
+        _setProposalGuardian(_proposalGuardian);
+    }
+
+    /// @notice Sets or updates the whitelist expiration for a specific account.
+    /// @notice A whitelisted account's proposals cannot be canceled by anyone except the `whitelistGuardian` when its
+    /// voting weight falls below the `proposalThreshold`.
+    /// @notice The whitelist account and `proposalGuardian` can still cancel its proposals regardless of voting weight.
+    /// @dev Only the executor (timelock) or the `whitelistGuardian` can call this function.
+    /// @param _account The address of the account to be whitelisted.
+    /// @param _expiration The timestamp until which the account will be whitelisted.
+    function setWhitelistAccountExpiration(address _account, uint256 _expiration) external {
+        if (msg.sender != _executor() && msg.sender != whitelistGuardian) {
+            revert Unauthorized("Not timelock or guardian", msg.sender);
+        }
+
+        whitelistAccountExpirations[_account] = _expiration;
+        emit WhitelistAccountExpirationSet(_account, _expiration);
+    }
+
+    /// @notice Checks if an account is currently whitelisted.
+    /// @notice Only a `whitelistGuardian` can cancel a whitelisted account's proposal for falling below
+    /// `proposalThreshold`.
+    /// @notice The proposer and proposalGuardian can still cancel a whitelisted account's proposal regardless of voting
+    /// weight.
+    /// @param _account The address of the account to check.
+    /// @return bool Returns true if the account is whitelisted (expiration is in the future), false otherwise.
+    function isWhitelisted(address _account) external view returns (bool) {
+        return (whitelistAccountExpirations[_account] > block.timestamp);
+    }
+
+    /// @notice Sets a new `whitelistGuardian`.
+    /// @notice a `whitelistGuardian` can whitelist accounts and can cancel whitelisted accounts' proposals when they
+    /// fall.
+    /// below `proposalThreshold.
+    /// @dev Only the executor (timelock) can call this function.
+    /// @param _newWhitelistGuardian The address of the new `whitelistGuardian`.
+    function setWhitelistGuardian(address _newWhitelistGuardian) external {
+        _checkGovernance();
+        _setWhitelistGuardian(_newWhitelistGuardian);
+    }
+
+    /// @notice Sets a new proposal guardian.
+    /// @dev This function can only be called by the executor (timelock).
+    /// @param _newProposalGuardian The new proposal guardian to be set, including their address and expiration.
+    function setProposalGuardian(ProposalGuardian memory _newProposalGuardian) external {
+        _checkGovernance();
+        _setProposalGuardian(_newProposalGuardian);
+    }
+
+    /// @notice Admin function for setting the whitelistGuardian. WhitelistGuardian can cancel proposals from
+    /// whitelisted addresses.
+    /// @param _newWhitelistGuardian Account to set whitelistGuardian to (0x0 to remove whitelistGuardian).
+    function _setWhitelistGuardian(address _newWhitelistGuardian) internal {
+        emit WhitelistGuardianSet(whitelistGuardian, _newWhitelistGuardian);
+        whitelistGuardian = _newWhitelistGuardian;
+    }
+
+    /// @notice Internal function to set a new proposal guardian.
+    /// @dev This function updates the proposal guardian and emits an event.
+    /// @param _newProposalGuardian The new proposal guardian to be set, including their address and expiration.
+    function _setProposalGuardian(ProposalGuardian memory _newProposalGuardian) internal {
+        emit ProposalGuardianSet(
+            proposalGuardian.account,
+            proposalGuardian.expiration,
+            _newProposalGuardian.account,
+            _newProposalGuardian.expiration
+        );
+        proposalGuardian = _newProposalGuardian;
     }
 
     /// @inheritdoc GovernorTimelockCompoundUpgradeable
