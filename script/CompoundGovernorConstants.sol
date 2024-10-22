@@ -21,7 +21,8 @@ contract CompoundGovernorConstants {
     address payable TIMELOCK_ADDRESS = payable(0x6d903f6003cca6255D85CcA4D3B5E5146dC33925);
 
     // The address of the proxy admin
-    address PROXY_ADMIN_ADDRESS = 0xc4d00a02C57B8C10F4fC85d7bf1F892f1098Cb7B;
+    address PROXY_ADMIN_ADDRESS = 0x05B96dd728edab708344F69C11854e98D4ec8FDA;
+    address COMMUNITY_MULTISIG_ADDRESS = 0xbbf3f1421D886E9b2c5D716B5192aC998af2012c; // Current proposal guardian.
 
     // The fork block for testing
     uint256 FORK_BLOCK = 20_885_000;
