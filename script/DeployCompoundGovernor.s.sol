@@ -46,7 +46,7 @@ contract DeployCompoundGovernor is Script, CompoundGovernorConstants {
             )
         );
         TransparentUpgradeableProxy _proxy =
-            new TransparentUpgradeableProxy(address(_implementation), address(this), _initData);
+            new TransparentUpgradeableProxy(address(_implementation), TIMELOCK_ADDRESS, _initData);
         _governor = CompoundGovernor(payable(address(_proxy)));
 
         vm.stopBroadcast();
