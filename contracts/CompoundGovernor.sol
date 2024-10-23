@@ -116,6 +116,37 @@ contract CompoundGovernor is
         _setProposalGuardian(_proposalGuardian);
     }
 
+    /// @notice Cancels an active proposal.
+    /// @notice This function can be called by the proposer, the proposal guardian, or anyone if the proposer's voting
+    /// power has dropped below the proposal threshold. For whitelisted proposers, only special actors (proposer,
+    /// proposal guardian, whitelist guardian) can cancel if the proposer is below the threshold.
+    /// @param targets An array of addresses that will be called if the proposal is executed.
+    /// @param values An array of ETH values to be sent to each address when the proposal is executed.
+    /// @param calldatas An array of calldata to be sent to each address when the proposal is executed.
+    /// @param descriptionHash The hash of the proposal's description string.
+    /// @return uint256 The ID of the canceled proposal.
+    function cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public override returns (uint256) {
+        uint256 _proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+        address _proposer = proposalProposer(_proposalId);
+
+        if (msg.sender != _proposer && msg.sender != proposalGuardian.account) {
+            if (token().getPriorVotes(_proposer, block.number - 1) >= proposalThreshold()) {
+                revert Unauthorized("Proposer above proposalThreshold", msg.sender);
+            }
+
+            if (isWhitelisted(_proposer) && msg.sender != whitelistGuardian) {
+                revert Unauthorized("Not whitelistGuardian", msg.sender);
+            }
+        }
+
+        return _cancel(targets, values, calldatas, descriptionHash);
+    }
+
     /// @notice Sets or updates the whitelist expiration for a specific account.
     /// @notice A whitelisted account's proposals cannot be canceled by anyone except the `whitelistGuardian` when its
     /// voting weight falls below the `proposalThreshold`.
@@ -139,7 +170,7 @@ contract CompoundGovernor is
     /// weight.
     /// @param _account The address of the account to check.
     /// @return bool Returns true if the account is whitelisted (expiration is in the future), false otherwise.
-    function isWhitelisted(address _account) external view returns (bool) {
+    function isWhitelisted(address _account) public view returns (bool) {
         return (whitelistAccountExpirations[_account] > block.timestamp);
     }
 

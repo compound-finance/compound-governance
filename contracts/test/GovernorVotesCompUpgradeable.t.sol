@@ -47,12 +47,11 @@ contract GovernorVotesCompUpgradeableTest is Test, CompoundGovernorConstants {
     }
 
     function testFuzz_ReturnsCorrectVotes(uint256 _blockNumber) public view {
-        _blockNumber = bound(_blockNumber, 0, FORK_BLOCK - 1);
+        _blockNumber = bound(_blockNumber, 21_000_000, FORK_BLOCK - 1);
         for (uint256 i; i < _majorDelegates.length; i++) {
-            assertEq(
-                governorVotes.getVotes(_majorDelegates[i], _blockNumber),
-                IComp(COMP_TOKEN_ADDRESS).getPriorVotes(_majorDelegates[i], _blockNumber)
-            );
+            uint256 _votingWeight = IComp(COMP_TOKEN_ADDRESS).getPriorVotes(_majorDelegates[i], _blockNumber);
+            assertTrue(_votingWeight > 0);
+            assertEq(governorVotes.getVotes(_majorDelegates[i], _blockNumber), _votingWeight);
         }
     }
 }
