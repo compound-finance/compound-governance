@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {IGovernor} from "contracts/extensions/IGovernor.sol";
 
 contract CompoundGovernorSetQuorumTest is ProposalTest {
     function _buildSetQuorumProposal(uint256 _amount) private view returns (Proposal memory _proposal) {

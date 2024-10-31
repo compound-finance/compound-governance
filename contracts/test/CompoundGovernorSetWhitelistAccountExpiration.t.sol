@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {IGovernor} from "contracts/extensions/IGovernor.sol";
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 
 contract CompoundGovernorSetWhitelistAccountExpirationTest is ProposalTest {

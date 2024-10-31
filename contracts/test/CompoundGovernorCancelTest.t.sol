@@ -3,7 +3,7 @@
 pragma solidity 0.8.26;
 
 import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {IGovernor} from "contracts/extensions/IGovernor.sol";
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 
 contract CompoundGovernorCancelTest is ProposalTest {
@@ -14,7 +14,7 @@ contract CompoundGovernorCancelTest is ProposalTest {
         _proposal = Proposal(_targets, _values, _calldatas, "An Empty Proposal");
     }
 
-    function _getProposalId(Proposal memory _proposal) private view returns (uint256) {
+    function _getProposalId(Proposal memory _proposal) private returns (uint256) {
         return governor.hashProposal(
             _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
         );

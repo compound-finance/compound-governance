@@ -37,8 +37,10 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
     function _updateTimelockAdminToNewGovernor(CompoundGovernor _newGovernor) internal {
         address _timelockAddress = governor.timelock();
         ICompoundTimelock _timelock = ICompoundTimelock(payable(_timelockAddress));
-        vm.prank(_timelockAddress);
+        vm.startPrank(_timelockAddress);
         _timelock.setPendingAdmin(address(_newGovernor));
+        _newGovernor.setNextProposalId();
+        vm.stopPrank();
         vm.prank(address(_newGovernor));
         _timelock.acceptAdmin();
     }
