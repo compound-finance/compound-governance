@@ -7,25 +7,28 @@ contract CompoundGovernorConstants {
 
     // These constants are taken from the existing GovernorBravoDelegate contract.
 
-    uint48 INITIAL_VOTING_DELAY = 13_140; // The delay before voting takes place, in blocks
-    uint32 INITIAL_VOTING_PERIOD = 19_710; // The duration of voting on a proposal, in blocks
-    uint256 INITIAL_PROPOSAL_THRESHOLD = 25_000e18; // Votes required in order for a voter to become proposer
-    uint256 INITIAL_QUORUM = 400_000e18; // 400,000 = 4% of Comp
+    uint48 constant INITIAL_VOTING_DELAY = 13_140; // The delay before voting takes place, in blocks
+    uint32 constant INITIAL_VOTING_PERIOD = 19_710; // The duration of voting on a proposal, in blocks
+    uint256 constant INITIAL_PROPOSAL_THRESHOLD = 25_000e18; // Votes required in order for a voter to become proposer
+    uint256 constant INITIAL_QUORUM = 400_000e18; // 400,000 = 4% of Comp
 
-    uint48 INITIAL_VOTE_EXTENSION = 7200; // Prevents sudden token moves before voting ends (2 days of blocks)
+    uint48 constant INITIAL_VOTE_EXTENSION = 7200; // Prevents sudden token moves before voting ends (2 days of blocks)
 
     // The address of the COMP token
-    address COMP_TOKEN_ADDRESS = 0xc00e94Cb662C3520282E6f5717214004A7f26888;
+    address constant COMP_TOKEN_ADDRESS = 0xc00e94Cb662C3520282E6f5717214004A7f26888;
 
     // The address of the Timelock
-    address payable TIMELOCK_ADDRESS = payable(0x6d903f6003cca6255D85CcA4D3B5E5146dC33925);
+    address payable constant TIMELOCK_ADDRESS = payable(0x6d903f6003cca6255D85CcA4D3B5E5146dC33925);
 
     // The address of the proxy admin
-    address PROXY_ADMIN_ADDRESS = 0x2fcE287db7d15a6eb0b83390BE228650689A64b6;
-    address COMMUNITY_MULTISIG_ADDRESS = 0xbbf3f1421D886E9b2c5D716B5192aC998af2012c; // Current proposal guardian.
+    address constant PROXY_ADMIN_ADDRESS = 0x2fcE287db7d15a6eb0b83390BE228650689A64b6;
+    address constant COMMUNITY_MULTISIG_ADDRESS = 0xbbf3f1421D886E9b2c5D716B5192aC998af2012c; // Current proposal
+        // guardian.
 
     // The fork block for testing
-    uint256 FORK_BLOCK = 21_017_323;
+    uint256 constant FORK_BLOCK = 21_017_323;
+
+    uint8 constant VOTE_TYPE_FRACTIONAL = 255;
 
     address[] public _majorDelegates;
 

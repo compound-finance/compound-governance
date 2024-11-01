@@ -34,6 +34,19 @@ contract ProposalTest is CompoundGovernorTest {
         vm.roll(vm.getBlockNumber() + 1);
     }
 
+    function _buildAnEmptyProposal() internal pure returns (Proposal memory _proposal) {
+        address[] memory _targets = new address[](1);
+        uint256[] memory _values = new uint256[](1);
+        bytes[] memory _calldatas = new bytes[](1);
+        _proposal = Proposal(_targets, _values, _calldatas, "An Empty Proposal");
+    }
+
+    function _getProposalId(Proposal memory _proposal) internal returns (uint256) {
+        return governor.hashProposal(
+            _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
+        );
+    }
+
     function _buildProposalData(string memory _signature, bytes memory _calldata)
         internal
         pure
