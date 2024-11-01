@@ -3,19 +3,14 @@ pragma solidity 0.8.26;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {GovernorUpgradeable} from "contracts/extensions/GovernorUpgradeable.sol";
-import {GovernorSequentialProposalIdUpgradeable} from
-    "contracts/extensions/GovernorSequentialProposalIdUpgradeable.sol";
+import {GovernorSequentialProposalIdUpgradeable} from "contracts/extensions/GovernorSequentialProposalIdUpgradeable.sol";
 import {GovernorVotesCompUpgradeable} from "contracts/extensions/GovernorVotesCompUpgradeable.sol";
 import {GovernorSettableFixedQuorumUpgradeable} from "contracts/extensions/GovernorSettableFixedQuorumUpgradeable.sol";
-import {GovernorCountingFractionalUpgradeable} from
-    "contracts/extensions/GovernorCountingFractionalUpgradeable.sol";
-import {GovernorTimelockCompoundUpgradeable} from
-    "contracts/extensions/GovernorTimelockCompoundUpgradeable.sol";
+import {GovernorCountingFractionalUpgradeable} from "contracts/extensions/GovernorCountingFractionalUpgradeable.sol";
+import {GovernorTimelockCompoundUpgradeable} from "contracts/extensions/GovernorTimelockCompoundUpgradeable.sol";
 import {ICompoundTimelock} from "@openzeppelin/contracts/vendor/compound/ICompoundTimelock.sol";
-import {GovernorSettingsUpgradeable} from
-    "contracts/extensions/GovernorSettingsUpgradeable.sol";
-import {GovernorPreventLateQuorumUpgradeable} from
-    "contracts/extensions/GovernorPreventLateQuorumUpgradeable.sol";
+import {GovernorSettingsUpgradeable} from "contracts/extensions/GovernorSettingsUpgradeable.sol";
+import {GovernorPreventLateQuorumUpgradeable} from "contracts/extensions/GovernorPreventLateQuorumUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IComp} from "contracts/interfaces/IComp.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -71,7 +66,7 @@ contract CompoundGovernor is
         uint96 expiration;
     }
 
-        GovernorBravoDelegateStorageV1 private constant compoundGovernorBravo =
+    GovernorBravoDelegateStorageV1 private constant compoundGovernorBravo =
         GovernorBravoDelegateStorageV1(0xc0Da02939E1441F497fd74F78cE7Decb17B66529);
 
     /// @notice Address which manages whitelisted proposals and whitelist accounts.
@@ -146,7 +141,7 @@ contract CompoundGovernor is
         bytes[] memory calldatas,
         string memory description,
         address proposer
-    ) internal override(GovernorUpgradeable, GovernorSequentialProposalIdUpgradeable) returns (uint) {
+    ) internal override(GovernorUpgradeable, GovernorSequentialProposalIdUpgradeable) returns (uint256) {
         return GovernorSequentialProposalIdUpgradeable._propose(targets, values, calldatas, description, proposer);
     }
 
@@ -180,7 +175,6 @@ contract CompoundGovernor is
 
         return _cancel(targets, values, calldatas, descriptionHash);
     }
-
 
     /// @notice Sets or updates the whitelist expiration for a specific account.
     /// @notice A whitelisted account's proposals cannot be canceled by anyone except the `whitelistGuardian` when its
@@ -256,7 +250,7 @@ contract CompoundGovernor is
         uint256[] memory _values,
         bytes[] memory _calldatas,
         bytes32 _descriptionHash
-    ) internal virtual override(GovernorUpgradeable, GovernorTimelockCompoundUpgradeable) returns (uint256) {
+    ) internal override(GovernorUpgradeable, GovernorTimelockCompoundUpgradeable) returns (uint256) {
         return GovernorTimelockCompoundUpgradeable._cancel(_targets, _values, _calldatas, _descriptionHash);
     }
 
@@ -268,7 +262,7 @@ contract CompoundGovernor is
         uint8 _support,
         string memory _reason,
         bytes memory _params
-    ) internal virtual override(GovernorUpgradeable, GovernorPreventLateQuorumUpgradeable) returns (uint256) {
+    ) internal override(GovernorUpgradeable, GovernorPreventLateQuorumUpgradeable) returns (uint256) {
         return GovernorPreventLateQuorumUpgradeable._castVote(_proposalId, _account, _support, _reason, _params);
     }
 
@@ -280,7 +274,7 @@ contract CompoundGovernor is
         uint256[] memory _values,
         bytes[] memory _calldatas,
         bytes32 _descriptionHash
-    ) internal virtual override(GovernorUpgradeable, GovernorTimelockCompoundUpgradeable) {
+    ) internal override(GovernorUpgradeable, GovernorTimelockCompoundUpgradeable) {
         return GovernorTimelockCompoundUpgradeable._executeOperations(
             _proposalId, _targets, _values, _calldatas, _descriptionHash
         );
@@ -304,7 +298,7 @@ contract CompoundGovernor is
         uint256[] memory _values,
         bytes[] memory _calldatas,
         bytes32 _descriptionHash
-    ) internal virtual override(GovernorUpgradeable, GovernorTimelockCompoundUpgradeable) returns (uint48) {
+    ) internal override(GovernorUpgradeable, GovernorTimelockCompoundUpgradeable) returns (uint48) {
         return GovernorTimelockCompoundUpgradeable._queueOperations(
             _proposalId, _targets, _values, _calldatas, _descriptionHash
         );
@@ -315,7 +309,6 @@ contract CompoundGovernor is
     function proposalDeadline(uint256 _proposalId)
         public
         view
-        virtual
         override(GovernorPreventLateQuorumUpgradeable, GovernorUpgradeable)
         returns (uint256)
     {
@@ -327,7 +320,6 @@ contract CompoundGovernor is
     function proposalNeedsQueuing(uint256 _proposalId)
         public
         view
-        virtual
         override(GovernorTimelockCompoundUpgradeable, GovernorUpgradeable)
         returns (bool)
     {
@@ -339,7 +331,6 @@ contract CompoundGovernor is
     function proposalThreshold()
         public
         view
-        virtual
         override(GovernorSettingsUpgradeable, GovernorUpgradeable)
         returns (uint256)
     {
@@ -351,7 +342,6 @@ contract CompoundGovernor is
     function state(uint256 _proposalId)
         public
         view
-        virtual
         override(GovernorUpgradeable, GovernorTimelockCompoundUpgradeable)
         returns (ProposalState)
     {
