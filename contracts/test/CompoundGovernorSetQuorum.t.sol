@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.26;
 
-import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
+import {CompoundGovernorTest} from "contracts/test/helpers/CompoundGovernorTest.sol";
 import {IGovernor} from "contracts/extensions/IGovernor.sol";
 
-contract CompoundGovernorSetQuorumTest is ProposalTest {
+contract CompoundGovernorSetQuorumTest is CompoundGovernorTest {
     function _buildSetQuorumProposal(uint256 _amount) private view returns (Proposal memory _proposal) {
         address[] memory _targets = new address[](1);
         _targets[0] = address(governor);
@@ -21,7 +21,7 @@ contract CompoundGovernorSetQuorumTest is ProposalTest {
     function testFuzz_SetQuorum(uint256 _newQuorum) public {
         _newQuorum = bound(_newQuorum, 1, INITIAL_QUORUM * 10);
         Proposal memory _proposal = _buildSetQuorumProposal(_newQuorum);
-        _submitPassQueueAndExecuteProposal(delegatee, _proposal);
+        _submitPassQueueAndExecuteProposal(_getRandomProposer(), _proposal);
         assertEq(governor.quorum(block.timestamp), _newQuorum);
     }
 
@@ -29,7 +29,7 @@ contract CompoundGovernorSetQuorumTest is ProposalTest {
         vm.assume(_newQuorum != INITIAL_QUORUM);
         _newQuorum = bound(_newQuorum, 1, INITIAL_QUORUM * 10);
         Proposal memory _proposal = _buildSetQuorumProposal(_newQuorum);
-        _submitAndFailProposal(delegatee, _proposal);
+        _submitAndFailProposal(_getRandomProposer(), _proposal);
         assertEq(governor.quorum(block.timestamp), INITIAL_QUORUM);
     }
 

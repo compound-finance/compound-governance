@@ -2,11 +2,11 @@
 
 pragma solidity 0.8.26;
 
-import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
+import {CompoundGovernorTest} from "contracts/test/helpers/CompoundGovernorTest.sol";
 import {IGovernor} from "contracts/extensions/IGovernor.sol";
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 
-contract CompoundGovernorCancelTest is ProposalTest {
+contract CompoundGovernorCancelTest is CompoundGovernorTest {
     function _setWhitelistedProposer(address _proposer) private {
         vm.prank(whitelistGuardian);
         governor.setWhitelistAccountExpiration(_proposer, block.timestamp + 2_000_000);

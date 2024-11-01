@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.26;
 
-import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
+import {CompoundGovernorTest} from "contracts/test/helpers/CompoundGovernorTest.sol";
 import {IGovernor} from "contracts/extensions/IGovernor.sol";
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 
-contract CompoundGovernorSetWhitelistGuardianTest is ProposalTest {
+contract CompoundGovernorSetWhitelistGuardianTest is CompoundGovernorTest {
     function _buildSetWhitelistGuardianProposal(address _whitelistGuardian)
         private
         view
@@ -25,14 +25,14 @@ contract CompoundGovernorSetWhitelistGuardianTest is ProposalTest {
 
     function testFuzz_SetsWhitelistGuardianAsTimelock(address _whitelistGuardian) public {
         Proposal memory _proposal = _buildSetWhitelistGuardianProposal(_whitelistGuardian);
-        _submitPassQueueAndExecuteProposal(delegatee, _proposal);
+        _submitPassQueueAndExecuteProposal(_getRandomProposer(), _proposal);
         assertEq(governor.whitelistGuardian(), _whitelistGuardian);
     }
 
     function testFuzz_EmitsEventWhenAWhitelistGuardianIsSet(address _whitelistGuardian, address _caller) public {
         vm.assume(_caller != PROXY_ADMIN_ADDRESS);
         Proposal memory _proposal = _buildSetWhitelistGuardianProposal(_whitelistGuardian);
-        _submitPassAndQueueProposal(delegatee, _proposal);
+        _submitPassAndQueueProposal(_getRandomProposer(), _proposal);
 
         vm.expectEmit();
         emit CompoundGovernor.WhitelistGuardianSet(governor.whitelistGuardian(), _whitelistGuardian);

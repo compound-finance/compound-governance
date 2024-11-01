@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.26;
 
-import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
-import {IGovernor} from "contracts/extensions/IGovernor.sol";
+import {CompoundGovernorTest} from "contracts/test/helpers/CompoundGovernorTest.sol";
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 
-contract CompoundGovernorSetWhitelistAccountExpirationTest is ProposalTest {
+contract CompoundGovernorSetWhitelistAccountExpirationTest is CompoundGovernorTest {
     function testFuzz_WhitelistAnAccountAsTimelock(address _account, uint256 _expiration) public {
         vm.prank(TIMELOCK_ADDRESS);
         governor.setWhitelistAccountExpiration(_account, _expiration);

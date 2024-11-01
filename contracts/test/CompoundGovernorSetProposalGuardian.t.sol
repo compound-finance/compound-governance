@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.26;
 
-import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
+import {CompoundGovernorTest} from "contracts/test/helpers/CompoundGovernorTest.sol";
 import {IGovernor} from "contracts/extensions/IGovernor.sol";
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 
-contract CompoundGovernorSetProposalGuardianTest is ProposalTest {
+contract CompoundGovernorSetProposalGuardianTest is CompoundGovernorTest {
     function _buildSetProposalGuardianProposal(CompoundGovernor.ProposalGuardian memory _proposalGuardian)
         private
         view
@@ -27,7 +27,7 @@ contract CompoundGovernorSetProposalGuardianTest is ProposalTest {
         public
     {
         Proposal memory _proposal = _buildSetProposalGuardianProposal(_proposalGuardian);
-        _submitPassQueueAndExecuteProposal(delegatee, _proposal);
+        _submitPassQueueAndExecuteProposal(_getRandomProposer(), _proposal);
         (address _account, uint96 _expiration) = governor.proposalGuardian();
         assertEq(_account, _proposalGuardian.account);
         assertEq(_expiration, _proposalGuardian.expiration);
@@ -40,7 +40,7 @@ contract CompoundGovernorSetProposalGuardianTest is ProposalTest {
         vm.assume(_caller != PROXY_ADMIN_ADDRESS);
         (address _currentAccount, uint96 _currentExpiration) = governor.proposalGuardian();
         Proposal memory _proposal = _buildSetProposalGuardianProposal(_proposalGuardian);
-        _submitPassAndQueueProposal(delegatee, _proposal);
+        _submitPassAndQueueProposal(_getRandomProposer(), _proposal);
 
         vm.expectEmit();
         emit CompoundGovernor.ProposalGuardianSet(

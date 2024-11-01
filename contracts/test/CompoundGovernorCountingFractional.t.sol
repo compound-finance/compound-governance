@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.26;
 
-import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
+import {CompoundGovernorTest} from "contracts/test/helpers/CompoundGovernorTest.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorCountingFractionalUpgradeable} from "contracts/CompoundGovernor.sol";
 
-abstract contract CountingMode is ProposalTest {
+abstract contract CountingMode is CompoundGovernorTest {
     function testFuzz_ReturnsCorrectCountingMode() public view {
         assertEq(governor.COUNTING_MODE(), "support=bravo,fractional&quorum=for,abstain&params=fractional");
     }
 }
 
-abstract contract HasVoted is ProposalTest {
+abstract contract HasVoted is CompoundGovernorTest {
     function testFuzz_ReturnsCorrectVotingStatus(
         bool _hasVotedBefore,
         uint256 _voteSeed,
@@ -36,7 +36,7 @@ abstract contract HasVoted is ProposalTest {
     }
 }
 
-abstract contract UsedVotes is ProposalTest {
+abstract contract UsedVotes is CompoundGovernorTest {
     function testFuzz_ReturnsCorrectUsedVotes(
         uint256 _proposerIndex,
         uint256 _voterIndex,
@@ -66,7 +66,7 @@ abstract contract UsedVotes is ProposalTest {
     }
 }
 
-abstract contract CastVoteWithReasonAndParams is ProposalTest {
+abstract contract CastVoteWithReasonAndParams is CompoundGovernorTest {
     function testFuzz_CastVotesViaFlexibleVoting(
         uint256 _proposerIndex,
         uint256 _voterIndex,
@@ -353,4 +353,9 @@ abstract contract CastVoteWithReasonAndParams is ProposalTest {
     }
 }
 
-contract CompoundGovernorCountingFractionalTest is ProposalTest, CountingMode, HasVoted, CastVoteWithReasonAndParams {}
+contract CompoundGovernorCountingFractionalTest is
+    CompoundGovernorTest,
+    CountingMode,
+    HasVoted,
+    CastVoteWithReasonAndParams
+{}

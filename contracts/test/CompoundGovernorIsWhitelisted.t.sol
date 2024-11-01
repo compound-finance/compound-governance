@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.26;
 
-import {ProposalTest} from "contracts/test/helpers/ProposalTest.sol";
-import {IGovernor} from "contracts/extensions/IGovernor.sol";
+import {CompoundGovernorTest} from "contracts/test/helpers/CompoundGovernorTest.sol";
 
-contract CompoundGovernorIsWhitelistedTest is ProposalTest {
+contract CompoundGovernorIsWhitelistedTest is CompoundGovernorTest {
     function testFuzz_ReturnTrueIfAnAccountIsStillWithinExpiry(
         address _account,
         uint256 _expiration,

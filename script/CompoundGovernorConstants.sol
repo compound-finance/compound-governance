@@ -21,7 +21,7 @@ contract CompoundGovernorConstants {
     address payable constant TIMELOCK_ADDRESS = payable(0x6d903f6003cca6255D85CcA4D3B5E5146dC33925);
 
     // The address of the proxy admin
-    address constant PROXY_ADMIN_ADDRESS = 0x2fcE287db7d15a6eb0b83390BE228650689A64b6;
+    address constant PROXY_ADMIN_ADDRESS = 0x08af690B4bd347c13BA57D7731b277f5d3D7434A;
     address constant COMMUNITY_MULTISIG_ADDRESS = 0xbbf3f1421D886E9b2c5D716B5192aC998af2012c; // Current proposal
         // guardian.
 
@@ -29,6 +29,13 @@ contract CompoundGovernorConstants {
     uint256 constant FORK_BLOCK = 21_017_323;
 
     uint8 constant VOTE_TYPE_FRACTIONAL = 255;
+
+    // GovernorBravo to receive upgrade proposal
+    address constant GOVERNOR_BRAVO_DELEGATE_ADDRESS = 0xc0Da02939E1441F497fd74F78cE7Decb17B66529;
+
+    // The deployed CompooundGovernor address for testing upgradability after deployment
+    // TODO: for now, just a placeholder
+    address constant DEPLOYED_UPGRADE_CANDIDATE = 0x1111111111111111111111111111111111111111;
 
     address[] public _majorDelegates;
 
