@@ -21,7 +21,7 @@ contract DeployCompoundGovernor is Script, CompoundGovernorConstants {
         );
     }
 
-    function run(address _owner, address _whitelistGuardian, CompoundGovernor.ProposalGuardian memory _proposalGuardian)
+    function run(address _whitelistGuardian, CompoundGovernor.ProposalGuardian memory _proposalGuardian)
         public
         returns (CompoundGovernor _governor)
     {
@@ -40,7 +40,6 @@ contract DeployCompoundGovernor is Script, CompoundGovernorConstants {
                 INITIAL_QUORUM,
                 ICompoundTimelock(TIMELOCK_ADDRESS),
                 INITIAL_VOTE_EXTENSION,
-                _owner,
                 _whitelistGuardian,
                 _proposalGuardian
             )

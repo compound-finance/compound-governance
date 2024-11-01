@@ -31,7 +31,7 @@ describe("ForkTestSimulateUpgrade", function () {
       "0xc0Da02939E1441F497fd74F78cE7Decb17B66529",
     );
     const proposingSigner = await ethers.getSigner(
-      "0xF977814e90dA44bFA03b6295A0616a897441aceC"
+      "0xF977814e90dA44bFA03b6295A0616a897441aceC",
     );
     await hardhat.network.provider.send("hardhat_setBalance", [
       proposingSigner.address,
@@ -111,7 +111,7 @@ describe("ForkTestSimulateUpgrade", function () {
       "0x6d903f6003cca6255D85CcA4D3B5E5146dC33925",
     );
     expect(await governorBravoDelegator.whitelistGuardian()).to.equal(
-      "0xbbf3f1421D886E9b2c5D716B5192aC998af2012c"
+      "0xbbf3f1421D886E9b2c5D716B5192aC998af2012c",
     );
   });
 
@@ -178,9 +178,8 @@ describe("ForkTestSimulateUpgrade", function () {
   });
 
   it("Set proposal guardian", async function () {
-    const { governorBravoDelegator, proposingSigner } = await loadFixture(
-      deployFixtures
-    );
+    const { governorBravoDelegator, proposingSigner } =
+      await loadFixture(deployFixtures);
     const [signer] = await ethers.getSigners();
     const setProposalGuardianSelector = ethers
       .id("_setProposalGuardian((address,uint96))")
@@ -202,7 +201,7 @@ describe("ForkTestSimulateUpgrade", function () {
       [await governorBravoDelegator.getAddress()],
       [0],
       [setProposalGuardianData],
-      "Set Proposal Guardian"
+      "Set Proposal Guardian",
     );
 
     expect(await governorBravoDelegator.proposalGuardian()).to.deep.equal([

@@ -23,7 +23,6 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
     CompoundGovernor governor;
     IComp token;
     ICompoundTimelock timelock;
-    address owner;
     address whitelistGuardian;
     CompoundGovernor.ProposalGuardian proposalGuardian;
     uint96 constant PROPOSAL_GUARDIAN_EXPIRY = 1_739_768_400;
@@ -37,19 +36,16 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         if (_useDeployedCompoundGovernor()) {
             // Set the governor to be the deployed CompoundGovernor
             governor = CompoundGovernor(payable(DEPLOYED_UPGRADE_CANDIDATE));
-            owner = governor.owner();
             whitelistGuardian = governor.whitelistGuardian();
             (proposalGuardian.account, proposalGuardian.expiration) = governor.proposalGuardian();
         } else {
-            // set the owner of the governor (use the anvil default account #0, if no environment variable is set)
-            owner = vm.envOr("DEPLOYER_ADDRESS", 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
             whitelistGuardian = makeAddr("WHITELIST_GUARDIAN_ADDRESS");
             proposalGuardian = CompoundGovernor.ProposalGuardian(COMMUNITY_MULTISIG_ADDRESS, PROPOSAL_GUARDIAN_EXPIRY);
 
             // Deploy the CompoundGovernor contract
             DeployCompoundGovernor _deployer = new DeployCompoundGovernor();
             _deployer.setUp();
-            governor = _deployer.run(owner, whitelistGuardian, proposalGuardian);
+            governor = _deployer.run(whitelistGuardian, proposalGuardian);
         }
         timelock = ICompoundTimelock(payable(governor.timelock()));
         token = governor.token();
@@ -60,7 +56,6 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         }
 
         vm.label(GOVERNOR_BRAVO_DELEGATE_ADDRESS, "GovernorBravoDelegate");
-        vm.label(owner, "Owner");
         vm.label(address(governor), "CompoundGovernor");
         vm.label(address(timelock), "Timelock");
         vm.label(COMP_TOKEN_ADDRESS, "CompToken");

@@ -11,7 +11,6 @@ import {GovernorTimelockCompoundUpgradeable} from "contracts/extensions/Governor
 import {ICompoundTimelock} from "@openzeppelin/contracts/vendor/compound/ICompoundTimelock.sol";
 import {GovernorSettingsUpgradeable} from "contracts/extensions/GovernorSettingsUpgradeable.sol";
 import {GovernorPreventLateQuorumUpgradeable} from "contracts/extensions/GovernorPreventLateQuorumUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IComp} from "contracts/interfaces/IComp.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {GovernorBravoDelegateStorageV1} from "contracts/GovernorBravoInterfaces.sol";
@@ -28,8 +27,7 @@ contract CompoundGovernor is
     GovernorCountingFractionalUpgradeable,
     GovernorPreventLateQuorumUpgradeable,
     GovernorSettableFixedQuorumUpgradeable,
-    GovernorSequentialProposalIdUpgradeable,
-    OwnableUpgradeable
+    GovernorSequentialProposalIdUpgradeable
 {
     /// @notice Emitted when the expiration of a whitelisted account is set or updated.
     /// @param account The address of the account being whitelisted.
@@ -94,7 +92,8 @@ contract CompoundGovernor is
     /// @param _quorumVotes The quorum votes.
     /// @param _timelockAddress The address of the Timelock.
     /// @param _initialVoteExtension The initial vote extension.
-    /// @param _initialOwner The initial owner of the Governor.
+    /// @param _whitelistGuardian The address of the whitelist guardian.
+    /// @param _proposalGuardian The proposal guardian.
     function initialize(
         uint48 _initialVotingDelay,
         uint32 _initialVotingPeriod,
@@ -103,7 +102,6 @@ contract CompoundGovernor is
         uint256 _quorumVotes,
         ICompoundTimelock _timelockAddress,
         uint48 _initialVoteExtension,
-        address _initialOwner,
         address _whitelistGuardian,
         ProposalGuardian calldata _proposalGuardian
     ) public initializer {
@@ -113,12 +111,13 @@ contract CompoundGovernor is
         __GovernorTimelockCompound_init(_timelockAddress);
         __GovernorPreventLateQuorum_init(_initialVoteExtension);
         __GovernorSettableFixedQuorum_init(_quorumVotes);
-        __Ownable_init(_initialOwner);
         __GovernorSequentialProposalId_init();
         _setWhitelistGuardian(_whitelistGuardian);
         _setProposalGuardian(_proposalGuardian);
     }
 
+    /// @notice Sets the next proposal ID. Designed to be callable once by the executor (timelock) on upgrade from
+    /// Compound GovernorBravo.
     function setNextProposalId() external {
         if (_executor() != _msgSender()) {
             revert GovernorOnlyExecutor(_msgSender());
@@ -126,6 +125,7 @@ contract CompoundGovernor is
         _setNextProposalId(compoundGovernorBravo.proposalCount());
     }
 
+    /// @notice A modified `hashProposal` that supports sequential proposal IDs.
     function hashProposal(
         address[] memory _targets,
         uint256[] memory _values,

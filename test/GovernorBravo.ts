@@ -1197,7 +1197,7 @@ describe("Governor Bravo", function () {
         governorBravo.connect(otherAccount)._setProposalGuardian({
           account: otherAccount,
           expiration: (await time.latest()) + 1000,
-        })
+        }),
       ).to.be.revertedWith("GovernorBravo::_setProposalGuardian: admin only");
       expect(await governorBravo.proposalGuardian()).to.deep.equal([
         ethers.ZeroAddress,
@@ -1212,7 +1212,7 @@ describe("Governor Bravo", function () {
         governorBravo._setProposalGuardian({
           account: otherAccount,
           expiration: expiryTimestamp,
-        })
+        }),
       )
         .to.emit(governorBravo, "ProposalGuardianSet")
         .withArgs(ethers.ZeroAddress, 0, otherAccount.address, expiryTimestamp);
@@ -1235,7 +1235,7 @@ describe("Governor Bravo", function () {
 
       await time.increase(1001);
       await expect(
-        governorBravo.connect(otherAccount).cancel(proposalId)
+        governorBravo.connect(otherAccount).cancel(proposalId),
       ).to.be.revertedWith("GovernorBravo::cancel: proposer above threshold");
     });
   });
