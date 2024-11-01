@@ -44,12 +44,6 @@ abstract contract GovernorSettableFixedQuorumUpgradeable is Initializable, Gover
         _setQuorum(_initialQuorum);
     }
 
-    /// @notice Initializer function to set the initial quorum.
-    /// @param _initialQuorum The number of total votes needed to pass a proposal.
-    function initialize(uint256 _initialQuorum) public initializer {
-        _setQuorum(_initialQuorum);
-    }
-
     /// @notice A function to set quorum for the current timepoint. Proposals created after this timepoint will be
     /// subject to the new quorum.
     /// @param _amount The new quorum threshold.
