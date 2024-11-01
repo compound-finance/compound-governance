@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Sourced from contract below, with import path changes for local GovernorUpgradeable.sol.
-// OpenZeppelin Contracts (last updated v5.1.0-rc.0) (governance/extensions/GovernorTimelockCompound.sol)
+// OpenZeppelin Contracts (last updated v5.1.0) (governance/extensions/GovernorTimelockCompound.sol)
 
 pragma solidity ^0.8.20;
 
