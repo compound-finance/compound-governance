@@ -4,8 +4,13 @@ pragma solidity ^0.8.20;
 
 import {GovernorUpgradeable} from "contracts/extensions/GovernorUpgradeable.sol";
 
+/// @title GovernorSequentialProposalIdUpgradeable
+/// @author [ScopeLift](https://scopelift.co)
+/// @notice Extension for Governor contract that assigns sequential proposal IDs.
+/// @notice This abstract contract modifies GovernorStorageUpgradeable and extends GovernorUpgradeable to provide
+/// sequential proposal IDs while preserving standard proposal addressability.
+/// @custom:security-contact TODO: Add security contact.
 abstract contract GovernorSequentialProposalIdUpgradeable is GovernorUpgradeable {
-    
     error ProposalIdAlreadySet();
 
     /// @dev Storage structure to store proposal details.
@@ -25,10 +30,16 @@ abstract contract GovernorSequentialProposalIdUpgradeable is GovernorUpgradeable
         mapping(uint256 proposalId => ProposalDetails) _proposalDetails;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.GovernorSequentialProposalIdStorage")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant GovernorSequentialProposalIdStorageLocation = 0xa6952339bc887ea688c6b8e8399bb953a5002ee79177d6322fca98dc89ae0b00;
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.GovernorSequentialProposalIdStorage")) - 1)) &
+    // ~bytes32(uint256(0xff))
+    bytes32 private constant GovernorSequentialProposalIdStorageLocation =
+        0xa6952339bc887ea688c6b8e8399bb953a5002ee79177d6322fca98dc89ae0b00;
 
-    function _getGovernorSequentialProposalIdStorage() private pure returns (GovernorSequentialProposalIdStorage storage $) {
+    function _getGovernorSequentialProposalIdStorage()
+        private
+        pure
+        returns (GovernorSequentialProposalIdStorage storage $)
+    {
         assembly {
             $.slot := GovernorSequentialProposalIdStorageLocation
         }
@@ -40,7 +51,7 @@ abstract contract GovernorSequentialProposalIdUpgradeable is GovernorUpgradeable
 
     function __GovernorSequentialProposalId_init_unchained() internal onlyInitializing {
         GovernorSequentialProposalIdStorage storage $ = _getGovernorSequentialProposalIdStorage();
-        $._nextProposalId = type(uint).max;
+        $._nextProposalId = type(uint256).max;
     }
 
     function hashProposal(
@@ -71,15 +82,15 @@ abstract contract GovernorSequentialProposalIdUpgradeable is GovernorUpgradeable
         $._nextProposalId = _proposalId;
     }
 
-     function _propose(
+    function _propose(
         address[] memory _targets,
         uint256[] memory _values,
         bytes[] memory _calldatas,
         string memory _description,
         address _proposer
     ) internal virtual override returns (uint256) {
-       GovernorSequentialProposalIdStorage storage $ = _getGovernorSequentialProposalIdStorage();
-        uint256 _proposalId = super._propose(_targets, _values, _calldatas, _description,_proposer);
+        GovernorSequentialProposalIdStorage storage $ = _getGovernorSequentialProposalIdStorage();
+        uint256 _proposalId = super._propose(_targets, _values, _calldatas, _description, _proposer);
         bytes32 _descriptionHash = keccak256(bytes(_description));
         uint256 _proposalHash = super.hashProposal(_targets, _values, _calldatas, _descriptionHash);
 
