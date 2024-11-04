@@ -145,17 +145,9 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         );
     }
 
-    function _passProposal(uint256 _proposalId) public {
-        for (uint256 _index = 0; _index < _majorDelegates.length; _index++) {
-            vm.prank(_majorDelegates[_index]);
-            governor.castVote(_proposalId, uint8(GovernorCountingSimpleUpgradeable.VoteType.For));
-        }
-    }
-
     function _passAndQueueProposal(Proposal memory _proposal, uint256 _proposalId) public {
         uint256 _timeLockDelay = timelock.delay();
         _passProposal(_proposalId);
-        vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
         governor.queue(
             _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
         );
