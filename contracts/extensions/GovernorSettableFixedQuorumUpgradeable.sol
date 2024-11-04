@@ -9,7 +9,7 @@ import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol
 /// @title GovernorSettableFixedQuorumUpdateable
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice An abstract extension to the Governor which implements a fixed quorum which can be updated by governance.
-/// @custom:security-contact TODO: Add security contact
+/// @custom:security-contact security@compound.finance
 abstract contract GovernorSettableFixedQuorumUpgradeable is Initializable, GovernorUpgradeable {
     using Checkpoints for Checkpoints.Trace208;
 

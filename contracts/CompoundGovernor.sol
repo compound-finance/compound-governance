@@ -18,7 +18,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 /// @title CompoundGovernor
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A governance contract for the Compound DAO.
-/// @custom:security-contact TODO: Add security contact
+/// @custom:security-contact security@compound.finance
 contract CompoundGovernor is
     Initializable,
     GovernorVotesCompUpgradeable,

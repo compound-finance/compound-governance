@@ -9,7 +9,7 @@ import {GovernorUpgradeable} from "contracts/extensions/GovernorUpgradeable.sol"
 /// @notice Extension for Governor contract that assigns sequential proposal IDs.
 /// @notice This abstract contract modifies GovernorStorageUpgradeable and extends GovernorUpgradeable to provide
 /// sequential proposal IDs while preserving standard proposal addressability.
-/// @custom:security-contact TODO: Add security contact.
+/// @custom:security-contact security@compound.finance
 abstract contract GovernorSequentialProposalIdUpgradeable is GovernorUpgradeable {
     error ProposalIdAlreadySet();
 

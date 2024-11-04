@@ -10,7 +10,7 @@ import {IComp} from "contracts/interfaces/IComp.sol";
 /// @title GovernorVotesCompUpgradeable
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice Modified GovernorVotes contract that supports Compound's COMP token.
-/// @custom:security-contact TODO: Add security contact
+/// @custom:security-contact security@compound.finance
 abstract contract GovernorVotesCompUpgradeable is Initializable, GovernorUpgradeable {
     /// @custom:storage-location IComp:storage.GovernorVotesComp
     struct GovernorVotesCompStorage {
