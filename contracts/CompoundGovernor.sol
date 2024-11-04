@@ -176,6 +176,18 @@ contract CompoundGovernor is
         return _cancel(targets, values, calldatas, descriptionHash);
     }
 
+    /// @notice Cancels a proposal given its ID.
+    /// @notice This function can be called by the proposer, the proposal guardian, or anyone if the proposer's voting
+    /// power has dropped below the proposal threshold. For whitelisted proposers, only special actors (proposer,
+    /// proposal guardian, whitelist guardian) can cancel if the proposer is below the threshold.
+    /// @param _proposalId The ID of the proposal to cancel.
+    /// @dev This function retrieves proposal details and calls the main cancel function with those details.
+    function cancel(uint256 _proposalId) public override {
+        (address[] memory _targets, uint256[] memory _values, bytes[] memory _calldatas, bytes32 _descriptionHash) =
+            proposalDetails(_proposalId);
+        cancel(_targets, _values, _calldatas, _descriptionHash);
+    }
+
     /// @notice Sets or updates the whitelist expiration for a specific account.
     /// @notice A whitelisted account's proposals cannot be canceled by anyone except the `whitelistGuardian` when its
     /// voting weight falls below the `proposalThreshold`.

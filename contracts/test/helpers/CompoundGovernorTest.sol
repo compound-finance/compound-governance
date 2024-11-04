@@ -8,6 +8,7 @@ import {DeployCompoundGovernor} from "script/DeployCompoundGovernor.s.sol";
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 import {GovernorBravoDelegate} from "contracts/GovernorBravoDelegate.sol";
 import {IComp} from "contracts/interfaces/IComp.sol";
+import {IGovernor} from "contracts/extensions/IGovernor.sol";
 import {GovernorCountingSimpleUpgradeable} from
     "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
 import {ProposeUpgradeBravoToCompoundGovernor} from "script/ProposeUpgradeBravoToCompoundGovernor.s.sol";
@@ -61,6 +62,10 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         vm.label(COMP_TOKEN_ADDRESS, "CompToken");
     }
 
+    function _encodeStateBitmap(IGovernor.ProposalState proposalState) internal pure returns (bytes32) {
+        return bytes32(1 << uint8(proposalState));
+    }
+
     function _useDeployedCompoundGovernor() internal pure virtual returns (bool) {
         return false;
     }
@@ -100,6 +105,10 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         vm.assume(_to != address(0));
     }
 
+    function _getRandomProposer() internal returns (address) {
+        return _majorDelegates[vm.randomUint(0, _majorDelegates.length - 1)];
+    }
+
     function _submitProposal(Proposal memory _proposal) public returns (uint256 _proposalId) {
         vm.prank(_getRandomProposer());
         _proposalId = governor.propose(_proposal.targets, _proposal.values, _proposal.calldatas, _proposal.description);
@@ -114,8 +123,26 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_DELAY + 1);
     }
 
-    function _getRandomProposer() internal returns (address) {
-        return _majorDelegates[vm.randomUint(0, _majorDelegates.length - 1)];
+    function _submitProposalWithoutRoll(address _proposer, Proposal memory _proposal)
+        public
+        returns (uint256 _proposalId)
+    {
+        vm.prank(_proposer);
+        _proposalId = governor.propose(_proposal.targets, _proposal.values, _proposal.calldatas, _proposal.description);
+    }
+
+    function _passProposal(uint256 _proposalId) public {
+        for (uint256 _index = 0; _index < _majorDelegates.length; _index++) {
+            vm.prank(_majorDelegates[_index]);
+            governor.castVote(_proposalId, uint8(GovernorCountingSimpleUpgradeable.VoteType.For));
+        }
+        vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
+    }
+
+    function _queueProposal(Proposal memory _proposal) public {
+        governor.queue(
+            _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
+        );
     }
 
     function _passAndQueueProposal(Proposal memory _proposal, uint256 _proposalId) public {
@@ -172,6 +199,13 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         }
 
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
+    }
+
+    function _submitAndPassProposal(address _proposer, Proposal memory _proposal) public returns (uint256) {
+        uint256 _proposalId = _submitProposal(address(_proposer), _proposal);
+        _passProposal(uint256(_proposalId));
+
+        return _proposalId;
     }
 
     function _submitPassAndQueueProposal(address _proposer, Proposal memory _proposal) public returns (uint256) {
