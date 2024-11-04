@@ -12,8 +12,8 @@ import {ICompoundTimelock} from "@openzeppelin/contracts/vendor/compound/ICompou
 import {GovernorSettingsUpgradeable} from "contracts/extensions/GovernorSettingsUpgradeable.sol";
 import {GovernorPreventLateQuorumUpgradeable} from "contracts/extensions/GovernorPreventLateQuorumUpgradeable.sol";
 import {IComp} from "contracts/interfaces/IComp.sol";
+import {GovernorAlphaInterface} from "contracts/GovernorBravoInterfaces.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {GovernorBravoDelegateStorageV1} from "contracts/GovernorBravoInterfaces.sol";
 
 /// @title CompoundGovernor
 /// @author [ScopeLift](https://scopelift.co)
@@ -64,8 +64,8 @@ contract CompoundGovernor is
         uint96 expiration;
     }
 
-    GovernorBravoDelegateStorageV1 private constant compoundGovernorBravo =
-        GovernorBravoDelegateStorageV1(0xc0Da02939E1441F497fd74F78cE7Decb17B66529);
+    GovernorAlphaInterface private constant compoundGovernorBravo =
+        GovernorAlphaInterface(0xc0Da02939E1441F497fd74F78cE7Decb17B66529);
 
     /// @notice Address which manages whitelisted proposals and whitelist accounts.
     /// @dev This address has the ability to set account whitelist expirations and can be changed through the governance
