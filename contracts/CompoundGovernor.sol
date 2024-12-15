@@ -112,6 +112,7 @@ contract CompoundGovernor is
         __GovernorPreventLateQuorum_init(_initialVoteExtension);
         __GovernorSettableFixedQuorum_init(_quorumVotes);
         __GovernorSequentialProposalId_init();
+        __GovernorCountingFractional_init();
         _setWhitelistGuardian(_whitelistGuardian);
         _setProposalGuardian(_proposalGuardian);
     }
