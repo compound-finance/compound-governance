@@ -13,7 +13,7 @@ import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol
 abstract contract GovernorSettableFixedQuorumUpgradeable is Initializable, GovernorUpgradeable {
     using Checkpoints for Checkpoints.Trace208;
 
-    /// @custom:storage-location erc7201:openzeppelin.storage.GovernorSettableFixedQuorum
+    /// @custom:storage-location erc7201:storage.GovernorSettableFixedQuorum
     struct GovernorSettableFixedQuorumStorage {
         Checkpoints.Trace208 _quorumCheckpoints;
     }
