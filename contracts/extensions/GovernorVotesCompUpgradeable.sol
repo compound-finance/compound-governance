@@ -33,7 +33,7 @@ abstract contract GovernorVotesCompUpgradeable is Initializable, GovernorUpgrade
 
     function __GovernorVotesComp_init_unchained(IComp _tokenAddress) internal onlyInitializing {
         GovernorVotesCompStorage storage $ = _getGovernorVotesCompStorage();
-        $._token = IComp(address(_tokenAddress));
+        $._token = _tokenAddress;
     }
 
     /// @notice Returns the IComp token used for governance.
