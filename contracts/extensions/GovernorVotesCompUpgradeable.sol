@@ -12,7 +12,7 @@ import {IComp} from "contracts/interfaces/IComp.sol";
 /// @notice Modified GovernorVotes contract that supports Compound's COMP token.
 /// @custom:security-contact security@compound.finance
 abstract contract GovernorVotesCompUpgradeable is Initializable, GovernorUpgradeable {
-    /// @custom:storage-location IComp:storage.GovernorVotesComp
+    /// @custom:storage-location erc7201:storage.GovernorVotesComp
     struct GovernorVotesCompStorage {
         IComp _token;
     }
