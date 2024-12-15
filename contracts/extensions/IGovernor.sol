@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Sourced from contract below, with change to hashProposal (removed pure) for sequential proposal ID suppert.
+// Sourced from contract below, with change to hashProposal (removed pure) for sequential proposal ID support.
 // OpenZeppelin Contracts (last updated v5.1.0-rc.0) (governance/IGovernor.sol)
 
 pragma solidity ^0.8.20;
