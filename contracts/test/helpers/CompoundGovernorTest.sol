@@ -109,6 +109,11 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         return _majorDelegates[vm.randomUint(0, _majorDelegates.length - 1)];
     }
 
+    function _setWhitelistedProposer(address _proposer) public {
+        vm.prank(whitelistGuardian);
+        governor.setWhitelistAccountExpiration(_proposer, block.timestamp + 2_000_000);
+    }
+
     function _submitProposal(Proposal memory _proposal) public returns (uint256 _proposalId) {
         vm.prank(_getRandomProposer());
         _proposalId = governor.propose(_proposal.targets, _proposal.values, _proposal.calldatas, _proposal.description);
