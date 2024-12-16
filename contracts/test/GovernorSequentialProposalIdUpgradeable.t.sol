@@ -30,7 +30,7 @@ contract GovernorSequentialProposalIdUpgradeableTest is CompoundGovernorTest {
 
 contract ProposalCount is GovernorSequentialProposalIdUpgradeableTest {
     function test_ReturnsCorrectProposalCount() public {
-        assertEq(governor.proposalCount(), compoundGovernorBravo.proposalCount());
+        assertEq(governor.proposalCount(), compoundGovernorBravo.proposalCount() + 1);
     }
 
     function testFuzz_ProposalCreatedEventEmittedWithEnumeratedProposalId(uint256 _newValue) public {
@@ -71,7 +71,7 @@ contract ProposalCount is GovernorSequentialProposalIdUpgradeableTest {
 contract GetNextProposalId is GovernorSequentialProposalIdUpgradeableTest {
     function testFuzz_ReturnsCorrectNextProposalId(uint256) public {
         uint256 _nextProposalId = governor.getNextProposalId();
-        assertEq(_nextProposalId, compoundGovernorBravo.proposalCount());
+        assertEq(_nextProposalId, compoundGovernorBravo.proposalCount() + 1);
         assertTrue(_nextProposalId > 0);
     }
 }
