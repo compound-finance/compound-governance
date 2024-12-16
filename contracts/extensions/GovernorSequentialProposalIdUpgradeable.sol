@@ -21,6 +21,7 @@ abstract contract GovernorSequentialProposalIdUpgradeable is GovernorUpgradeable
         bytes32 descriptionHash;
     }
 
+    /// @custom:storage-location erc7201:storage.GovernorSequentialProposalIdStorage
     struct GovernorSequentialProposalIdStorage {
         /// @notice The next proposal ID to assign to a proposal.
         uint256 _nextProposalId;
@@ -30,10 +31,10 @@ abstract contract GovernorSequentialProposalIdUpgradeable is GovernorUpgradeable
         mapping(uint256 proposalId => ProposalDetails) _proposalDetails;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.GovernorSequentialProposalIdStorage")) - 1)) &
+    // keccak256(abi.encode(uint256(keccak256("storage.GovernorSequentialProposalIdStorage")) - 1)) &
     // ~bytes32(uint256(0xff))
     bytes32 private constant GovernorSequentialProposalIdStorageLocation =
-        0xa6952339bc887ea688c6b8e8399bb953a5002ee79177d6322fca98dc89ae0b00;
+        0x357e1d0c89980520b3654c57f444238d75a15e5f41d389a090caabe54617d800;
 
     function _getGovernorSequentialProposalIdStorage()
         private
