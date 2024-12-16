@@ -675,7 +675,7 @@ contract CompoundGovernorSetWhitelistGuardianTest is CompoundGovernorTest {
 
 contract CountingMode is CompoundGovernorTest {
     function testFuzz_ReturnsCorrectCountingMode() public view {
-        assertEq(governor.COUNTING_MODE(), "support=bravo,fractional&quorum=for,abstain&params=fractional");
+        assertEq(governor.COUNTING_MODE(), "support=bravo,fractional&quorum=for&params=fractional");
     }
 }
 
@@ -931,6 +931,39 @@ contract CastVoteWithReasonAndParams is CompoundGovernorTest {
 
         vm.roll(vm.getBlockNumber() + governor.votingPeriod() + 1);
         assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Succeeded));
+    }
+
+    function testFuzz_ProposalFailsAfterFractionalVotesToAbstain(uint256 _proposerIndex, uint256 _voterIndex) public {
+        _proposerIndex = bound(_proposerIndex, 0, _majorDelegates.length - 1);
+        _voterIndex = bound(_voterIndex, 0, _majorDelegates.length - 1);
+
+        address _proposer = _majorDelegates[_proposerIndex];
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        uint256 _proposalId = _getProposalId(_proposal);
+        _submitProposal(_proposer, _proposal);
+
+        uint256 _totalAbstainVotes;
+        for (uint256 i; i < _majorDelegates.length; i++) {
+            address _delegate = _majorDelegates[i];
+            uint256 _votes = governor.getVotes(_delegate, vm.getBlockNumber() - 1);
+            uint256 _forVotes = 1;
+            uint256 _againstVotes = 0;
+            uint256 _abstainVotes = _votes - 1;
+
+            vm.prank(_delegate);
+            bytes memory _params = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
+            governor.castVoteWithReasonAndParams(_proposalId, VOTE_TYPE_FRACTIONAL, "MyReason", _params);
+            _totalAbstainVotes += _abstainVotes;
+        }
+
+        (uint256 _againstVotesCast, uint256 _forVotesCast, uint256 _abstainVotesCast) =
+            governor.proposalVotes(_proposalId);
+        assertEq(_forVotesCast, _majorDelegates.length);
+        assertEq(_againstVotesCast, 0);
+        assertEq(_abstainVotesCast, _totalAbstainVotes);
+
+        vm.roll(vm.getBlockNumber() + governor.votingPeriod() + 1);
+        assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Defeated));
     }
 
     function testFuzz_ProposalFailsAfterFractionalVotes(uint256 _proposerIndex, uint256 _voterIndex) public {

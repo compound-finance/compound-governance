@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {IGovernor} from "contracts/extensions/IGovernor.sol";
 import {GovernorUpgradeable} from "contracts/extensions/GovernorUpgradeable.sol";
 import {GovernorSequentialProposalIdUpgradeable} from "contracts/extensions/GovernorSequentialProposalIdUpgradeable.sol";
 import {GovernorVotesCompUpgradeable} from "contracts/extensions/GovernorVotesCompUpgradeable.sol";
@@ -359,5 +360,18 @@ contract CompoundGovernor is
         returns (ProposalState)
     {
         return GovernorTimelockCompoundUpgradeable.state(_proposalId);
+    }
+
+    /// @inheritdoc GovernorCountingFractionalUpgradeable
+    // solhint-disable-next-line func-name-mixedcase
+    function COUNTING_MODE() public pure override(IGovernor, GovernorCountingFractionalUpgradeable) returns (string memory) {
+        return "support=bravo,fractional&quorum=for&params=fractional";
+    }
+
+    /// @notice Internal function that returns true if the amount of 'for' votes already cast meets the quorum limit, false otherwise.
+    /// @dev We override this function to implement quorum functionality that only includes votes in favor.
+    function _quorumReached(uint256 proposalId) internal view override(GovernorUpgradeable, GovernorCountingFractionalUpgradeable) returns (bool) {
+        (, uint256 _forVotes, ) = GovernorCountingFractionalUpgradeable.proposalVotes(proposalId);
+        return quorum(proposalSnapshot(proposalId)) <= _forVotes;
     }
 }
