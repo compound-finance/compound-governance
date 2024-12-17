@@ -125,7 +125,7 @@ contract CompoundGovernor is
             revert GovernorOnlyExecutor(_msgSender());
         }
 
-        // In GovernorBravo, proposal IDs start at 1, so its proposalCount() function is the most recent 
+        // In GovernorBravo, proposal IDs start at 1, so its proposalCount() function is the most recent
         // proposal ID created. This function sets the first proposal ID for the CompoundGovernor to 1 beyond that,
         // so the first proposal ID of compoundGovernor is one more that the last proposal ID of GovernorBravo.
         _setNextProposalId(compoundGovernorBravo.proposalCount() + 1);
@@ -210,14 +210,23 @@ contract CompoundGovernor is
         uint256 _proposalId = hashProposal(_targets, _values, _calldatas, _descriptionHash);
         address _proposer = proposalProposer(_proposalId);
 
-        if (msg.sender != _proposer && msg.sender != proposalGuardian.account) {
-            if (token().getPriorVotes(_proposer, block.number - 1) >= proposalThreshold()) {
-                revert Unauthorized("Proposer above proposalThreshold", msg.sender);
-            }
+        // Proposer and valid guardian can always cancel.
+        if (
+            msg.sender == _proposer
+                || (msg.sender == proposalGuardian.account && block.timestamp <= proposalGuardian.expiration)
+        ) {
+            return _cancel(_targets, _values, _calldatas, _descriptionHash);
+        }
 
-            if (isWhitelisted(_proposer) && msg.sender != whitelistGuardian) {
-                revert Unauthorized("Not whitelistGuardian", msg.sender);
-            }
+        // For other cancellation attempts, check proposer's voting power.
+        bool _isProposerAboveThreshold = token().getPriorVotes(_proposer, block.number - 1) >= proposalThreshold();
+        if (_isProposerAboveThreshold) {
+            revert Unauthorized("Proposer above proposalThreshold", msg.sender);
+        }
+
+        // Check whitelist status
+        if (isWhitelisted(_proposer) && msg.sender != whitelistGuardian) {
+            revert Unauthorized("Not whitelistGuardian", msg.sender);
         }
 
         return _cancel(_targets, _values, _calldatas, _descriptionHash);
@@ -410,14 +419,25 @@ contract CompoundGovernor is
 
     /// @inheritdoc GovernorCountingFractionalUpgradeable
     // solhint-disable-next-line func-name-mixedcase
-    function COUNTING_MODE() public pure override(IGovernor, GovernorCountingFractionalUpgradeable) returns (string memory) {
+    function COUNTING_MODE()
+        public
+        pure
+        override(IGovernor, GovernorCountingFractionalUpgradeable)
+        returns (string memory)
+    {
         return "support=bravo,fractional&quorum=for&params=fractional";
     }
 
-    /// @notice Internal function that returns true if the amount of 'for' votes already cast meets the quorum limit, false otherwise.
+    /// @notice Internal function that returns true if the amount of 'for' votes already cast meets the quorum limit,
+    /// false otherwise.
     /// @dev We override this function to implement quorum functionality that only includes votes in favor.
-    function _quorumReached(uint256 proposalId) internal view override(GovernorUpgradeable, GovernorCountingFractionalUpgradeable) returns (bool) {
-        (, uint256 _forVotes, ) = GovernorCountingFractionalUpgradeable.proposalVotes(proposalId);
+    function _quorumReached(uint256 proposalId)
+        internal
+        view
+        override(GovernorUpgradeable, GovernorCountingFractionalUpgradeable)
+        returns (bool)
+    {
+        (, uint256 _forVotes,) = GovernorCountingFractionalUpgradeable.proposalVotes(proposalId);
         return quorum(proposalSnapshot(proposalId)) <= _forVotes;
     }
 }

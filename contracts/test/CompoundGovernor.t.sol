@@ -74,6 +74,16 @@ contract Propose is CompoundGovernorTest {
         vm.assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Active));
     }
 
+    function test_WhitelistedAccountCanProposeAboveThreshold() public {
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        address _proposer = _getRandomProposer();
+        _setWhitelistedProposer(_proposer);
+        uint256 _proposalId = _getProposalId(_proposal);
+
+        _submitProposal(_proposer, _proposal);
+        vm.assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Active));
+    }
+
     function testFuzz_WhitelistedAccountCanProposeBelowThreshold(address _proposer) public {
         Proposal memory _proposal = _buildAnEmptyProposal();
         _setWhitelistedProposer(_proposer);
@@ -404,10 +414,36 @@ abstract contract Cancel is CompoundGovernorTest {
         vm.assertEq(uint256(governor.state(_proposalId)), uint256(IGovernor.ProposalState.Canceled));
     }
 
-    function test_ProposalGuardianCanCancelAnyProposal() public {
+    function test_ProposalGuardianCanCancelNonWhitelistedProposalAboveThreshold() public {
         Proposal memory _proposal = _buildAnEmptyProposal();
         uint256 _proposalId = _getProposalId(_proposal);
         _submitPassAndQueueProposal(_getRandomProposer(), _proposal);
+
+        vm.prank(proposalGuardian.account);
+        _cancelWithProposalDetailsOrId(_proposal, _proposalId);
+        vm.assertEq(uint256(governor.state(_proposalId)), uint256(IGovernor.ProposalState.Canceled));
+    }
+
+    function test_ProposalGuardianCanCancelWhitelistedProposalAboveThreshold() public {
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        uint256 _proposalId = _getProposalId(_proposal);
+        address _proposer = _getRandomProposer();
+        _setWhitelistedProposer(_proposer);
+        _submitPassAndQueueProposal(_proposer, _proposal);
+
+        vm.prank(proposalGuardian.account);
+        _cancelWithProposalDetailsOrId(_proposal, _proposalId);
+        vm.assertEq(uint256(governor.state(_proposalId)), uint256(IGovernor.ProposalState.Canceled));
+    }
+
+    function test_ExpiredProposalGuardianCanCancelProposalBelowThreshold(uint256 _timeElapsedSinceExpiry) public {
+        _timeElapsedSinceExpiry = bound(_timeElapsedSinceExpiry, 1, type(uint32).max);
+        vm.warp(uint256(proposalGuardian.expiration) + _timeElapsedSinceExpiry);
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        uint256 _proposalId = _getProposalId(_proposal);
+        address _proposer = _getRandomProposer();
+        _submitPassAndQueueProposal(_proposer, _proposal);
+        _removeDelegateeVotingWeight(_proposer);
 
         vm.prank(proposalGuardian.account);
         _cancelWithProposalDetailsOrId(_proposal, _proposalId);
@@ -427,6 +463,18 @@ abstract contract Cancel is CompoundGovernorTest {
         vm.assertEq(uint256(governor.state(_proposalId)), uint256(IGovernor.ProposalState.Canceled));
     }
 
+    function test_WhitelistGuardianCanCancelNonWhitelistedProposalBelowThreshold() public {
+        address _proposer = _getRandomProposer();
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        uint256 _proposalId = _getProposalId(_proposal);
+        _submitPassAndQueueProposal(_proposer, _proposal);
+        _removeDelegateeVotingWeight(_proposer);
+
+        vm.prank(whitelistGuardian);
+        _cancelWithProposalDetailsOrId(_proposal, _proposalId);
+        vm.assertEq(uint256(governor.state(_proposalId)), uint256(IGovernor.ProposalState.Canceled));
+    }
+
     function test_WhitelistGuardianCanCancelWhitelistedProposalBelowThreshold() public {
         address _proposer = _getRandomProposer();
         Proposal memory _proposal = _buildAnEmptyProposal();
@@ -438,6 +486,37 @@ abstract contract Cancel is CompoundGovernorTest {
         vm.prank(whitelistGuardian);
         _cancelWithProposalDetailsOrId(_proposal, _proposalId);
         vm.assertEq(uint256(governor.state(_proposalId)), uint256(IGovernor.ProposalState.Canceled));
+    }
+
+    function testFuzz_RevertIf_WhitelistGuardianCancelsNonWhitelistedProposalAboveThreshold() public {
+        address _proposer = _getRandomProposer();
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        uint256 _proposalId = _getProposalId(_proposal);
+        _submitPassAndQueueProposal(_proposer, _proposal);
+
+        vm.prank(whitelistGuardian);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CompoundGovernor.Unauthorized.selector, bytes32("Proposer above proposalThreshold"), whitelistGuardian
+            )
+        );
+        _cancelWithProposalDetailsOrId(_proposal, _proposalId);
+    }
+
+    function testFuzz_RevertIf_WhitelistGuardianCancelsWhitelistedProposalAboveThreshold() public {
+        address _proposer = _getRandomProposer();
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        uint256 _proposalId = _getProposalId(_proposal);
+        _setWhitelistedProposer(_proposer);
+        _submitPassAndQueueProposal(_proposer, _proposal);
+
+        vm.prank(whitelistGuardian);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CompoundGovernor.Unauthorized.selector, bytes32("Proposer above proposalThreshold"), whitelistGuardian
+            )
+        );
+        _cancelWithProposalDetailsOrId(_proposal, _proposalId);
     }
 
     function testFuzz_RevertIf_NonProposerOrGuardianCancelsProposalAboveThreshold(address _caller) public {
@@ -491,6 +570,26 @@ abstract contract Cancel is CompoundGovernorTest {
         vm.expectRevert(
             abi.encodeWithSelector(
                 CompoundGovernor.Unauthorized.selector, bytes32("Proposer above proposalThreshold"), _caller
+            )
+        );
+        _cancelWithProposalDetailsOrId(_proposal, _proposalId);
+    }
+
+    function testFuzz_RevertIf_ExpiredProposalGuardianCancelsProposalAboveThreshold(uint256 _timeElapsedSinceExpiry)
+        public
+    {
+        _timeElapsedSinceExpiry = bound(_timeElapsedSinceExpiry, 1, type(uint96).max);
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        uint256 _proposalId = _getProposalId(_proposal);
+        _submitPassAndQueueProposal(_getRandomProposer(), _proposal);
+
+        vm.warp(uint256(proposalGuardian.expiration) + _timeElapsedSinceExpiry);
+        vm.prank(proposalGuardian.account);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CompoundGovernor.Unauthorized.selector,
+                bytes32("Proposer above proposalThreshold"),
+                proposalGuardian.account
             )
         );
         _cancelWithProposalDetailsOrId(_proposal, _proposalId);
