@@ -131,6 +131,12 @@ contract CompoundGovernor is
         _setNextProposalId(compoundGovernorBravo.proposalCount() + 1);
     }
 
+    /// @inheritdoc GovernorSequentialProposalIdUpgradeable
+    /// @dev Since GovernorBravo indexed from 1, we decrement the proposal count by 1.
+    function proposalCount() public view override returns (uint256) {
+        return super.proposalCount() - 1;
+    }
+
     /// @notice A modified `hashProposal` that supports sequential proposal IDs.
     function hashProposal(
         address[] memory _targets,
