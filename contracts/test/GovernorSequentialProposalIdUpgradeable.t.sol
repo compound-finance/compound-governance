@@ -36,10 +36,14 @@ contract ProposalCount is GovernorSequentialProposalIdUpgradeableTest {
     function testFuzz_ProposalCreatedEventEmittedWithEnumeratedProposalId(uint256 _newValue) public {
         _newValue = bound(_newValue, INITIAL_PROPOSAL_THRESHOLD, INITIAL_PROPOSAL_THRESHOLD + 10);
         address _proposer = _getRandomProposer();
-        string memory _description = "Checking for enumearted proposal IDs on events";
-        Proposal memory _firstProposal = _buildBasicProposal(_newValue, "First proposal to get and ID");
+        string memory _description = "Checking for enumerated proposal IDs on events";
+        Proposal memory _firstProposal = _buildBasicProposal(_newValue, "First proposal to get an ID");
         uint256 _firstProposalId = _submitProposal(_proposer, _firstProposal);
         uint256 _originalProposalCount = governor.proposalCount();
+
+        // Roll until proposal period is over so we can submit a new one
+        vm.roll(vm.getBlockNumber() + governor.votingPeriod());
+
         Proposal memory _proposal = _buildBasicProposal(_newValue, _description);
         vm.expectEmit();
         emit IGovernor.ProposalCreated(
@@ -62,6 +66,8 @@ contract ProposalCount is GovernorSequentialProposalIdUpgradeableTest {
         _newValue = bound(_newValue, INITIAL_PROPOSAL_THRESHOLD, INITIAL_PROPOSAL_THRESHOLD + 10);
         Proposal memory _proposal1 = _buildBasicProposal(_newValue, "Set New Proposal Threshold");
         uint256 _proposalId1 = _submitProposal(_proposal1);
+        // Roll until proposal period is over so we can submit a new one
+        vm.roll(vm.getBlockNumber() + governor.votingPeriod());
         Proposal memory _proposal2 = _buildBasicProposal(_newValue + 1, "Second Proposal");
         uint256 _proposalId2 = _submitProposal(_proposal2);
         assertEq(_proposalId2, _proposalId1 + 1);

@@ -57,6 +57,12 @@ contract CompoundGovernor is
     /// @param caller The address that attempted the unauthorized action.
     error Unauthorized(bytes32 reason, address caller);
 
+    /// @notice Error thrown when a proposer attempts to create a new proposal while they have an active proposal.
+    /// @param proposer The address of the proposer.
+    /// @param proposalId The ID of the active proposal.
+    /// @param state The state of the active proposal.
+    error ProposerActiveProposal(address proposer, uint256 proposalId, ProposalState state);
+
     /// @notice The address and expiration of the proposal guardian.
     struct ProposalGuardian {
         // Address of the `ProposalGuardian`
@@ -79,6 +85,9 @@ contract CompoundGovernor is
 
     /// @notice Stores the expiration of account whitelist status as a timestamp.
     mapping(address account => uint256 timestamp) public whitelistAccountExpirations;
+
+    /// @notice Stores the latest proposal ID for each proposer.
+    mapping(address proposer => uint256 latestProposalId) public latestProposalIds;
 
     /// @notice Disables the initialize function.
     constructor() {
@@ -195,7 +204,17 @@ contract CompoundGovernor is
         string memory _description,
         address _proposer
     ) internal override(GovernorUpgradeable, GovernorSequentialProposalIdUpgradeable) returns (uint256) {
-        return GovernorSequentialProposalIdUpgradeable._propose(_targets, _values, _calldatas, _description, _proposer);
+        uint256 _latestProposalId = latestProposalIds[_proposer];
+        if (_latestProposalId != 0) {
+            ProposalState _lastProposalState = state(_latestProposalId);
+            if (_lastProposalState == ProposalState.Active || _lastProposalState == ProposalState.Pending) {
+                revert ProposerActiveProposal(_proposer, _latestProposalId, _lastProposalState);
+            }
+        }
+        uint256 _proposalId =
+            GovernorSequentialProposalIdUpgradeable._propose(_targets, _values, _calldatas, _description, _proposer);
+        latestProposalIds[_proposer] = _proposalId;
+        return _proposalId;
     }
 
     /// @notice Cancels an active proposal.

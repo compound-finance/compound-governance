@@ -93,6 +93,17 @@ contract Propose is CompoundGovernorTest {
         vm.assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Active));
     }
 
+    function testFuzz_ProposerCanSubmitAnotherProposalAfterVotingPeriod(uint256 _elapsedBlocks) public {
+        _elapsedBlocks = bound(_elapsedBlocks, governor.votingDelay() + governor.votingPeriod() + 1, type(uint32).max);
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        address _proposer = _getRandomProposer();
+        _submitProposalWithoutRoll(_proposer, _proposal);
+        vm.roll(vm.getBlockNumber() + _elapsedBlocks);
+        _proposal.description = "second proposal";
+        uint256 _proposalId = _submitProposal(_proposer, _proposal);
+        vm.assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Active));
+    }
+
     function test_EmitsProposalCreatedEvent() public {
         Proposal memory _proposal = _buildAnEmptyProposal();
         address _proposer = _getRandomProposer();
@@ -109,6 +120,24 @@ contract Propose is CompoundGovernorTest {
             block.number + INITIAL_VOTING_DELAY,
             block.number + INITIAL_VOTING_DELAY + INITIAL_VOTING_PERIOD,
             _proposal.description
+        );
+        _submitProposal(_proposer, _proposal);
+    }
+
+    function testFuzz_RevertIf_ProposerHasActiveProposal(uint256 _elapsedBlocks) public {
+        _elapsedBlocks = bound(_elapsedBlocks, 0, governor.votingDelay() + governor.votingPeriod());
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        address _proposer = _getRandomProposer();
+        bool _isWhitelisted = vm.randomUint() % 2 == 0;
+        if (_isWhitelisted) {
+            _setWhitelistedProposer(_proposer);
+        }
+        uint256 _proposalId = _submitProposalWithoutRoll(_proposer, _proposal);
+        vm.roll(vm.getBlockNumber() + _elapsedBlocks);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CompoundGovernor.ProposerActiveProposal.selector, _proposer, _proposalId, governor.state(_proposalId)
+            )
         );
         _submitProposal(_proposer, _proposal);
     }
