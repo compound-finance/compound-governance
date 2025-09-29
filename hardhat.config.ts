@@ -1,3 +1,4 @@
+require("@nomicfoundation/hardhat-foundry");
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@compound-finance/hardhat-match";
@@ -6,13 +7,38 @@ dotEnvConfig();
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.18",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
+    compilers: [
+      {
+        version: "0.8.18",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          evmVersion: "cancun",
+        },
       },
-    },
+      {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          evmVersion: "cancun",
+        },
+      },
+      {
+        version: "0.8.26",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          evmVersion: "cancun",
+        },
+      },
+    ],
   },
   networks: {
     mainnet: {

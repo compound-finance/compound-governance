@@ -30,7 +30,7 @@ describe("Comp", function () {
       const { otherAccount, comp } = await loadFixture(deployFixtures);
 
       await expect(
-        comp.approve(otherAccount, ethers.MaxUint256 - 1n)
+        comp.approve(otherAccount, ethers.MaxUint256 - 1n),
       ).to.be.revertedWith("Comp::approve: amount exceeds 96 bits");
     });
 
@@ -42,11 +42,11 @@ describe("Comp", function () {
         .withArgs(owner.address, otherAccount.address, 2n ** 96n - 1n);
 
       await expect(
-        comp.connect(otherAccount).transferFrom(owner, otherAccount, 100)
+        comp.connect(otherAccount).transferFrom(owner, otherAccount, 100),
       ).to.not.emit(comp, "Approval");
 
       expect(await comp.allowance(owner, otherAccount)).to.equal(
-        2n ** 96n - 1n
+        2n ** 96n - 1n,
       );
     });
   });
@@ -62,7 +62,7 @@ describe("Comp", function () {
     it("Error: over uint96", async function () {
       const { otherAccount, comp } = await loadFixture(deployFixtures);
       await expect(
-        comp.transfer(otherAccount, ethers.MaxUint256 - 1n)
+        comp.transfer(otherAccount, ethers.MaxUint256 - 1n),
       ).to.be.revertedWith("Comp::transfer: amount exceeds 96 bits");
     });
   });
@@ -72,7 +72,7 @@ describe("Comp", function () {
       const { owner, otherAccount, comp } = await loadFixture(deployFixtures);
       await comp.approve(otherAccount, 100);
       await expect(
-        comp.connect(otherAccount).transferFrom(owner, otherAccount, 100)
+        comp.connect(otherAccount).transferFrom(owner, otherAccount, 100),
       )
         .to.emit(comp, "Transfer")
         .withArgs(owner.address, otherAccount.address, 100)
@@ -86,7 +86,7 @@ describe("Comp", function () {
       await expect(
         comp
           .connect(otherAccount)
-          .transferFrom(owner, otherAccount, ethers.MaxUint256 - 1n)
+          .transferFrom(owner, otherAccount, ethers.MaxUint256 - 1n),
       ).to.be.revertedWith("Comp::approve: amount exceeds 96 bits");
     });
   });
@@ -95,25 +95,25 @@ describe("Comp", function () {
     it("Error: from zero address", async function () {
       const { otherAccount, comp } = await loadFixture(deployFixtures);
       await expect(
-        comp.transferFrom(ethers.ZeroAddress, otherAccount, 0)
+        comp.transferFrom(ethers.ZeroAddress, otherAccount, 0),
       ).to.be.revertedWith(
-        "Comp::_transferTokens: cannot transfer from the zero address"
+        "Comp::_transferTokens: cannot transfer from the zero address",
       );
     });
 
     it("Error: to zero address", async function () {
       const { comp } = await loadFixture(deployFixtures);
       await expect(comp.transfer(ethers.ZeroAddress, 100)).to.be.revertedWith(
-        "Comp::_transferTokens: cannot transfer to the zero address"
+        "Comp::_transferTokens: cannot transfer to the zero address",
       );
     });
 
     it("Error: exceeds balance", async function () {
       const { comp, owner, otherAccount } = await loadFixture(deployFixtures);
       await expect(
-        comp.connect(otherAccount).transfer(owner, 100)
+        comp.connect(otherAccount).transfer(owner, 100),
       ).to.be.revertedWith(
-        "Comp::_transferTokens: transfer amount exceeds balance"
+        "Comp::_transferTokens: transfer amount exceeds balance",
       );
     });
   });
@@ -126,7 +126,7 @@ describe("Comp", function () {
         .withArgs(owner.address, ethers.ZeroAddress, owner.address);
       expect(await comp.delegates(owner)).to.eq(owner.address);
       expect(await comp.getCurrentVotes(owner)).to.eq(
-        BigInt("10000000") * 10n ** 18n
+        BigInt("10000000") * 10n ** 18n,
       );
     });
 
@@ -135,9 +135,7 @@ describe("Comp", function () {
         const { comp, owner } = await loadFixture(deployFixtures);
         const domain = await getTypedDomainComp(
           comp,
-          (
-            await ethers.provider.getNetwork()
-          ).chainId
+          (await ethers.provider.getNetwork()).chainId,
         );
         const delegationTypes = await getDelegationTypes();
 
@@ -157,8 +155,8 @@ describe("Comp", function () {
             (await time.latest()) + 100,
             v,
             r,
-            s
-          )
+            s,
+          ),
         )
           .to.emit(comp, "DelegateChanged")
           .withArgs(owner.address, ethers.ZeroAddress, owner.address);
@@ -168,9 +166,7 @@ describe("Comp", function () {
         const { comp, owner, otherAccount } = await loadFixture(deployFixtures);
         const domain = await getTypedDomainComp(
           comp,
-          (
-            await ethers.provider.getNetwork()
-          ).chainId
+          (await ethers.provider.getNetwork()).chainId,
         );
         const delegationTypes = await getDelegationTypes();
 
@@ -189,7 +185,7 @@ describe("Comp", function () {
           (await time.latest()) + 100,
           v,
           r,
-          s
+          s,
         );
 
         sig = await owner.signTypedData(domain, delegationTypes, {
@@ -202,7 +198,7 @@ describe("Comp", function () {
         v = "0x" + sig.substring(130, 132);
 
         await expect(
-          comp.delegateBySig(otherAccount.address, 2, 0, v, r, s)
+          comp.delegateBySig(otherAccount.address, 2, 0, v, r, s),
         ).to.be.revertedWith("Comp::delegateBySig: invalid nonce");
       });
 
@@ -210,9 +206,7 @@ describe("Comp", function () {
         const { comp, owner } = await loadFixture(deployFixtures);
         const domain = await getTypedDomainComp(
           comp,
-          (
-            await ethers.provider.getNetwork()
-          ).chainId
+          (await ethers.provider.getNetwork()).chainId,
         );
         const delegationTypes = await getDelegationTypes();
 
@@ -232,8 +226,8 @@ describe("Comp", function () {
             (await time.latest()) + 100,
             v,
             r,
-            s
-          )
+            s,
+          ),
         ).to.revertedWith("Comp::delegateBySig: invalid signature");
       });
 
@@ -241,9 +235,7 @@ describe("Comp", function () {
         const { comp, owner } = await loadFixture(deployFixtures);
         const domain = await getTypedDomainComp(
           comp,
-          (
-            await ethers.provider.getNetwork()
-          ).chainId
+          (await ethers.provider.getNetwork()).chainId,
         );
         const delegationTypes = await getDelegationTypes();
 
@@ -263,8 +255,8 @@ describe("Comp", function () {
             (await time.latest()) - 100,
             v,
             r,
-            s
-          )
+            s,
+          ),
         ).to.be.revertedWith("Comp::delegateBySig: signature expired");
       });
     });
@@ -298,7 +290,7 @@ describe("Comp", function () {
       expect(await comp.getPriorVotes(otherAccount, blockNumber1)).to.eq(0);
       expect(await comp.getPriorVotes(otherAccount, blockNumber2)).to.eq(200);
       expect(await comp.getPriorVotes(otherAccount, blockNumber3 - 1)).to.eq(
-        200
+        200,
       );
       expect(await comp.getPriorVotes(otherAccount, blockNumber3)).to.eq(400);
     });
@@ -315,7 +307,7 @@ describe("Comp", function () {
       const blockNumber = await ethers.provider.getBlockNumber();
 
       await expect(comp.getPriorVotes(owner, blockNumber)).to.be.revertedWith(
-        "Comp::getPriorVotes: not yet determined"
+        "Comp::getPriorVotes: not yet determined",
       );
     });
   });
@@ -333,7 +325,7 @@ describe("Comp", function () {
         .withArgs(
           owner.address,
           10000000n * 10n ** 18n,
-          10000000n * 10n ** 18n - 100n
+          10000000n * 10n ** 18n - 100n,
         );
     });
 
@@ -353,9 +345,7 @@ describe("Comp", function () {
 
       const domain = await getTypedDomainComp(
         comp,
-        (
-          await ethers.provider.getNetwork()
-        ).chainId
+        (await ethers.provider.getNetwork()).chainId,
       );
       const delegationTypes = await getDelegationTypes();
 
@@ -385,7 +375,7 @@ describe("Comp", function () {
           expiry,
           v,
           r,
-          s
+          s,
         )
       ).data;
 
@@ -396,7 +386,7 @@ describe("Comp", function () {
           expiry,
           v2,
           r2,
-          s2
+          s2,
         )
       ).data;
 

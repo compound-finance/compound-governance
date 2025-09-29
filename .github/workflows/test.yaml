@@ -9,6 +9,7 @@ on:
       - main
 
 env:
+  FOUNDRY_PROFILE: ci
   RPC_URL: ${{ secrets.RPC_URL }}
 
 jobs:
@@ -23,6 +24,19 @@ jobs:
           cache: 'npm'
       - name: Install Dependencies
         run: npm ci
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test        
       - name: Run Tests
         run: npm test
   coverage:
@@ -36,6 +50,15 @@ jobs:
           cache: 'npm'
       - name: Install Dependencies
         run: npm ci
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
       - name: Run Coverage
         run: npm run coverage
       - name: Coveralls GitHub Action
@@ -51,6 +74,15 @@ jobs:
           cache: 'npm'
       - name: Install Dependencies
         run: npm ci
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
       - name: build source
         run: npm run build
       - name: Run Lint
