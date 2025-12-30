@@ -177,6 +177,38 @@ contract Propose is CompoundGovernorTest {
         );
         _submitProposal(_proposer, _proposal);
     }
+
+    function testFuzz_RevertIf_DescriptionRestrictsProposer(address _proposer, address _wrongProposer) public {
+        vm.assume(_proposer != _wrongProposer);
+        vm.assume(_wrongProposer != address(0));
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        _proposal.description = string(abi.encodePacked(_proposal.description, "#proposer=0x", _toHexString(_proposer)));
+        vm.prank(_wrongProposer);
+        vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorRestrictedProposer.selector, _wrongProposer));
+        governor.propose(_proposal.targets, _proposal.values, _proposal.calldatas, _proposal.description);
+    }
+
+    function testFuzz_ProposeSucceedsIfDescriptionRestrictsCorrectProposer(address _proposer) public {
+        vm.assume(_proposer != address(0));
+        Proposal memory _proposal = _buildAnEmptyProposal();
+        _proposal.description = string(abi.encodePacked(_proposal.description, "#proposer=0x", _toHexString(_proposer)));
+        _setWhitelistedProposer(_proposer);
+        vm.prank(_proposer);
+        uint256 _proposalId = governor.propose(_proposal.targets, _proposal.values, _proposal.calldatas, _proposal.description);
+        vm.roll(vm.getBlockNumber() + INITIAL_VOTING_DELAY + 1);
+        vm.assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Active));
+    }
+
+    function _toHexString(address addr) internal pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory data = abi.encodePacked(addr);
+        bytes memory str = new bytes(40);
+        for (uint256 i = 0; i < 20; i++) {
+            str[i*2] = alphabet[uint8(data[i] >> 4)];
+            str[i*2+1] = alphabet[uint8(data[i] & 0x0f)];
+        }
+        return string(str);
+    }
 }
 
 abstract contract Queue is CompoundGovernorTest {
