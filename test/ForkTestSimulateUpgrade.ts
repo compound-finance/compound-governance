@@ -20,7 +20,7 @@ describe("ForkTestSimulateUpgrade", function () {
     if (process.env.RPC_URL === undefined) {
       throw new Error("RPC_URL is undefined");
     }
-    await reset(process.env.RPC_URL);
+    await reset(process.env.RPC_URL, 20493482);
 
     const comp = await ethers.getContractAt(
       "Comp",
