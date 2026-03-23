@@ -26,8 +26,6 @@ jobs:
         run: npm ci
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
       - name: Run Forge build
         run: |
           forge --version
@@ -52,13 +50,8 @@ jobs:
         run: npm ci
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-      - name: Run Forge build
-        run: |
-          forge --version
-          forge build --sizes
-        id: build
+      - name: Run Forge Coverage
+        run: forge coverage --report lcov
       - name: Run Coverage
         run: npm run coverage
       - name: Coveralls GitHub Action

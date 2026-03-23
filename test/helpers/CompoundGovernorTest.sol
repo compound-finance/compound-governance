@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.26;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {ICompoundTimelock} from "@openzeppelin/contracts/vendor/compound/ICompoundTimelock.sol";
-import {CompoundGovernorConstants} from "script/CompoundGovernorConstants.sol";
-import {DeployCompoundGovernor} from "script/DeployCompoundGovernor.s.sol";
-import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
-import {GovernorBravoDelegate} from "contracts/GovernorBravoDelegate.sol";
-import {IComp} from "contracts/interfaces/IComp.sol";
-import {IGovernor} from "contracts/extensions/IGovernor.sol";
-import {GovernorCountingSimpleUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
-import {ProposeUpgradeBravoToCompoundGovernor} from "script/ProposeUpgradeBravoToCompoundGovernor.s.sol";
+import { Test, console2 } from "forge-std/Test.sol";
+import { ICompoundTimelock } from "@openzeppelin/contracts/vendor/compound/ICompoundTimelock.sol";
+import { CompoundGovernorConstants } from "script/CompoundGovernorConstants.sol";
+import { DeployCompoundGovernor } from "script/DeployCompoundGovernor.s.sol";
+import { CompoundGovernor } from "contracts/CompoundGovernor.sol";
+import { GovernorBravoDelegate } from "contracts/GovernorBravoDelegate.sol";
+import { IComp } from "contracts/interfaces/IComp.sol";
+import { IGovernor } from "contracts/extensions/IGovernor.sol";
+import { GovernorCountingSimpleUpgradeable } from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
+import { ProposeUpgradeBravoToCompoundGovernor } from "script/ProposeUpgradeBravoToCompoundGovernor.s.sol";
 
 contract CompoundGovernorTest is Test, CompoundGovernorConstants {
     struct Proposal {
@@ -28,20 +27,28 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
     CompoundGovernor.ProposalGuardian proposalGuardian;
     uint96 constant PROPOSAL_GUARDIAN_EXPIRY = 1_739_768_400;
 
-    GovernorBravoDelegate public constant GOVERNOR_BRAVO = GovernorBravoDelegate(GOVERNOR_BRAVO_DELEGATE_ADDRESS);
+    GovernorBravoDelegate public constant GOVERNOR_BRAVO =
+        GovernorBravoDelegate(GOVERNOR_BRAVO_DELEGATE_ADDRESS);
 
     function setUp() public virtual {
         // set the RPC URL and the fork block number to create a local execution fork for testing
-        vm.createSelectFork(vm.envOr("RPC_URL", string("Please set RPC_URL in your .env file")), FORK_BLOCK);
+        vm.createSelectFork(
+            vm.envOr("RPC_URL", string("Please set RPC_URL in your .env file")),
+            FORK_BLOCK
+        );
 
         if (_useDeployedCompoundGovernor()) {
             // Set the governor to be the deployed CompoundGovernor
             governor = CompoundGovernor(payable(DEPLOYED_UPGRADE_CANDIDATE));
             whitelistGuardian = governor.whitelistGuardian();
-            (proposalGuardian.account, proposalGuardian.expiration) = governor.proposalGuardian();
+            (proposalGuardian.account, proposalGuardian.expiration) = governor
+                .proposalGuardian();
         } else {
             whitelistGuardian = makeAddr("WHITELIST_GUARDIAN_ADDRESS");
-            proposalGuardian = CompoundGovernor.ProposalGuardian(COMMUNITY_MULTISIG_ADDRESS, PROPOSAL_GUARDIAN_EXPIRY);
+            proposalGuardian = CompoundGovernor.ProposalGuardian(
+                COMMUNITY_MULTISIG_ADDRESS,
+                PROPOSAL_GUARDIAN_EXPIRY
+            );
 
             // Deploy the CompoundGovernor contract
             DeployCompoundGovernor _deployer = new DeployCompoundGovernor();
@@ -62,43 +69,72 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         vm.label(COMP_TOKEN_ADDRESS, "CompToken");
     }
 
-    function _encodeStateBitmap(IGovernor.ProposalState proposalState) internal pure returns (bytes32) {
+    function _encodeStateBitmap(
+        IGovernor.ProposalState proposalState
+    ) internal pure returns (bytes32) {
         return bytes32(1 << uint8(proposalState));
     }
 
-    function _useDeployedCompoundGovernor() internal pure virtual returns (bool) {
+    function _useDeployedCompoundGovernor()
+        internal
+        pure
+        virtual
+        returns (bool)
+    {
         return false;
     }
 
-    function _shouldPassAndExecuteUpgradeProposal() internal pure virtual returns (bool) {
+    function _shouldPassAndExecuteUpgradeProposal()
+        internal
+        pure
+        virtual
+        returns (bool)
+    {
         return true;
     }
 
-    function _timelockOrWhitelistGuardian(uint256 _randomSeed) internal view returns (address) {
+    function _timelockOrWhitelistGuardian(
+        uint256 _randomSeed
+    ) internal view returns (address) {
         return _randomSeed % 2 == 0 ? TIMELOCK_ADDRESS : whitelistGuardian;
     }
 
     /* Begin CompoundGovernor-related helper methods */
 
-    function _getProposalId(Proposal memory _proposal) internal returns (uint256) {
-        return governor.hashProposal(
-            _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
-        );
+    function _getProposalId(
+        Proposal memory _proposal
+    ) internal returns (uint256) {
+        return
+            governor.hashProposal(
+                _proposal.targets,
+                _proposal.values,
+                _proposal.calldatas,
+                keccak256(bytes(_proposal.description))
+            );
     }
 
-    function _buildProposalData(string memory _signature, bytes memory _calldata)
+    function _buildProposalData(
+        string memory _signature,
+        bytes memory _calldata
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodePacked(bytes4(keccak256(bytes(_signature))), _calldata);
+    }
+
+    function _buildAnEmptyProposal()
         internal
         pure
-        returns (bytes memory)
+        returns (Proposal memory _proposal)
     {
-        return abi.encodePacked(bytes4(keccak256(bytes(_signature))), _calldata);
-    }
-
-    function _buildAnEmptyProposal() internal pure returns (Proposal memory _proposal) {
         address[] memory _targets = new address[](1);
         uint256[] memory _values = new uint256[](1);
         bytes[] memory _calldatas = new bytes[](1);
-        _proposal = Proposal(_targets, _values, _calldatas, "An Empty Proposal");
+        _proposal = Proposal(
+            _targets,
+            _values,
+            _calldatas,
+            "An Empty Proposal"
+        );
     }
 
     function _assumeSafeReceiver(address _to) public pure {
@@ -111,50 +147,85 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
 
     function _setWhitelistedProposer(address _proposer) public {
         vm.prank(whitelistGuardian);
-        governor.setWhitelistAccountExpiration(_proposer, block.timestamp + 2_000_000);
+        governor.setWhitelistAccountExpiration(
+            _proposer,
+            block.timestamp + 2_000_000
+        );
     }
 
-    function _submitProposal(Proposal memory _proposal) public returns (uint256 _proposalId) {
+    function _submitProposal(
+        Proposal memory _proposal
+    ) public returns (uint256 _proposalId) {
         vm.prank(_getRandomProposer());
-        _proposalId = governor.propose(_proposal.targets, _proposal.values, _proposal.calldatas, _proposal.description);
+        _proposalId = governor.propose(
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas,
+            _proposal.description
+        );
 
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_DELAY + 1);
     }
 
-    function _submitProposal(address _proposer, Proposal memory _proposal) public returns (uint256 _proposalId) {
+    function _submitProposal(
+        address _proposer,
+        Proposal memory _proposal
+    ) public returns (uint256 _proposalId) {
         vm.prank(_proposer);
-        _proposalId = governor.propose(_proposal.targets, _proposal.values, _proposal.calldatas, _proposal.description);
+        _proposalId = governor.propose(
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas,
+            _proposal.description
+        );
 
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_DELAY + 1);
     }
 
-    function _submitProposalWithoutRoll(address _proposer, Proposal memory _proposal)
-        public
-        returns (uint256 _proposalId)
-    {
+    function _submitProposalWithoutRoll(
+        address _proposer,
+        Proposal memory _proposal
+    ) public returns (uint256 _proposalId) {
         vm.prank(_proposer);
-        _proposalId = governor.propose(_proposal.targets, _proposal.values, _proposal.calldatas, _proposal.description);
+        _proposalId = governor.propose(
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas,
+            _proposal.description
+        );
     }
 
     function _passProposal(uint256 _proposalId) public {
         for (uint256 _index = 0; _index < _majorDelegates.length; _index++) {
             vm.prank(_majorDelegates[_index]);
-            governor.castVote(_proposalId, uint8(GovernorCountingSimpleUpgradeable.VoteType.For));
+            governor.castVote(
+                _proposalId,
+                uint8(GovernorCountingSimpleUpgradeable.VoteType.For)
+            );
         }
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
     }
 
     function _queueProposal(Proposal memory _proposal) public {
         governor.queue(
-            _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas,
+            keccak256(bytes(_proposal.description))
         );
     }
 
-    function _passAndQueueProposal(Proposal memory _proposal, uint256 _proposalId) public {
+    function _passAndQueueProposal(
+        Proposal memory _proposal,
+        uint256 _proposalId
+    ) public {
         uint256 _timeLockDelay = timelock.delay();
         _passProposal(_proposalId);
         governor.queue(
-            _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas,
+            keccak256(bytes(_proposal.description))
         );
 
         vm.warp(block.timestamp + _timeLockDelay + 1);
@@ -164,7 +235,10 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         uint256 _timeLockDelay = timelock.delay();
         for (uint256 _index = 0; _index < _majorDelegates.length; _index++) {
             vm.prank(_majorDelegates[_index]);
-            governor.castVote(_proposalId, uint8(GovernorCountingSimpleUpgradeable.VoteType.For));
+            governor.castVote(
+                _proposalId,
+                uint8(GovernorCountingSimpleUpgradeable.VoteType.For)
+            );
         }
 
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
@@ -174,66 +248,88 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         governor.execute(_proposalId);
     }
 
-    function _passQueueAndExecuteProposal(Proposal memory _proposal, uint256 _proposalId) public {
+    function _passQueueAndExecuteProposal(
+        Proposal memory _proposal,
+        uint256 _proposalId
+    ) public {
         uint256 _timeLockDelay = timelock.delay();
         for (uint256 _index = 0; _index < _majorDelegates.length; _index++) {
             vm.prank(_majorDelegates[_index]);
-            governor.castVote(_proposalId, uint8(GovernorCountingSimpleUpgradeable.VoteType.For));
+            governor.castVote(
+                _proposalId,
+                uint8(GovernorCountingSimpleUpgradeable.VoteType.For)
+            );
         }
 
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
         governor.queue(
-            _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas,
+            keccak256(bytes(_proposal.description))
         );
 
         vm.warp(block.timestamp + _timeLockDelay + 1);
         governor.execute(
-            _proposal.targets, _proposal.values, _proposal.calldatas, keccak256(bytes(_proposal.description))
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas,
+            keccak256(bytes(_proposal.description))
         );
     }
 
     function _failProposal(uint256 _proposalId) public {
         for (uint256 _index = 0; _index < _majorDelegates.length; _index++) {
             vm.prank(_majorDelegates[_index]);
-            governor.castVote(_proposalId, uint8(GovernorCountingSimpleUpgradeable.VoteType.Against));
+            governor.castVote(
+                _proposalId,
+                uint8(GovernorCountingSimpleUpgradeable.VoteType.Against)
+            );
         }
 
         vm.roll(vm.getBlockNumber() + INITIAL_VOTING_PERIOD + 1);
     }
 
-    function _submitAndPassProposal(address _proposer, Proposal memory _proposal) public returns (uint256) {
+    function _submitAndPassProposal(
+        address _proposer,
+        Proposal memory _proposal
+    ) public returns (uint256) {
         uint256 _proposalId = _submitProposal(address(_proposer), _proposal);
         _passProposal(uint256(_proposalId));
 
         return _proposalId;
     }
 
-    function _submitPassAndQueueProposal(address _proposer, Proposal memory _proposal) public returns (uint256) {
+    function _submitPassAndQueueProposal(
+        address _proposer,
+        Proposal memory _proposal
+    ) public returns (uint256) {
         uint256 _proposalId = _submitProposal(_proposer, _proposal);
         _passAndQueueProposal(_proposal, _proposalId);
         return _proposalId;
     }
 
-    function _submitPassQueueAndExecuteProposal(address _proposer, Proposal memory _proposal)
-        public
-        returns (uint256)
-    {
+    function _submitPassQueueAndExecuteProposal(
+        address _proposer,
+        Proposal memory _proposal
+    ) public returns (uint256) {
         uint256 _proposalId = _submitProposal(_proposer, _proposal);
         _passQueueAndExecuteProposal(_proposal, _proposalId);
         return _proposalId;
     }
 
-    function _submitAndFailProposal(address _proposer, Proposal memory _proposal) public returns (uint256) {
+    function _submitAndFailProposal(
+        address _proposer,
+        Proposal memory _proposal
+    ) public returns (uint256) {
         uint256 _proposalId = _submitProposal(_proposer, _proposal);
         _failProposal(_proposalId);
         return _proposalId;
     }
 
-    function _buildNewGovernorSetVotingDelayProposal(uint48 _amount)
-        internal
-        view
-        returns (Proposal memory _proposal)
-    {
+    function _buildNewGovernorSetVotingDelayProposal(
+        uint48 _amount
+    ) internal view returns (Proposal memory _proposal) {
         address[] memory _targets = new address[](1);
         _targets[0] = address(governor);
 
@@ -241,16 +337,27 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         _values[0] = 0;
 
         bytes[] memory _calldatas = new bytes[](1);
-        _calldatas[0] = _buildProposalData("setVotingDelay(uint48)", abi.encode(_amount));
+        _calldatas[0] = _buildProposalData(
+            "setVotingDelay(uint48)",
+            abi.encode(_amount)
+        );
 
-        _proposal = Proposal(_targets, _values, _calldatas, "Set New Voting Delay on New Compound Governor");
+        _proposal = Proposal(
+            _targets,
+            _values,
+            _calldatas,
+            "Set New Voting Delay on New Compound Governor"
+        );
     }
 
-    function _buildAndSubmitOldGovernorSetVotingDelayProposal(uint256 _proposerIndex, uint256 _amount)
-        internal
-        returns (uint256 _proposalId)
-    {
-        vm.assume(_amount >= GOVERNOR_BRAVO.MIN_VOTING_DELAY() && _amount <= GOVERNOR_BRAVO.MAX_VOTING_DELAY());
+    function _buildAndSubmitOldGovernorSetVotingDelayProposal(
+        uint256 _proposerIndex,
+        uint256 _amount
+    ) internal returns (uint256 _proposalId) {
+        vm.assume(
+            _amount >= GOVERNOR_BRAVO.MIN_VOTING_DELAY() &&
+                _amount <= GOVERNOR_BRAVO.MAX_VOTING_DELAY()
+        );
         _proposerIndex = bound(_proposerIndex, 0, _majorDelegates.length - 1);
         address[] memory _targets = new address[](1);
         uint256[] memory _values = new uint256[](1);
@@ -264,14 +371,22 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
 
         vm.prank(_majorDelegates[0]);
         return
-            GOVERNOR_BRAVO.propose(_targets, _values, _signatures, _calldatas, "Set Voting Delay on Old Governor Bravo");
+            GOVERNOR_BRAVO.propose(
+                _targets,
+                _values,
+                _signatures,
+                _calldatas,
+                "Set Voting Delay on Old Governor Bravo"
+            );
     }
 
     /* End CompoundGovernor-related helper methods */
 
     /* Begin Bravo-related helper methods */
 
-    function _updateTimelockAdminToNewGovernor(CompoundGovernor _newGovernor) internal {
+    function _updateTimelockAdminToNewGovernor(
+        CompoundGovernor _newGovernor
+    ) internal {
         ProposeUpgradeBravoToCompoundGovernor _proposeUpgrade = new ProposeUpgradeBravoToCompoundGovernor();
 
         // runs the script to propose the upgrade
@@ -281,13 +396,21 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         _passQueueAndExecuteBravoProposal(_upgradeProposalId);
     }
 
-    function _getBravoProposalStartBlock(uint256 _bravoProposalId) internal view returns (uint256) {
-        (,,, uint256 _startBlock,,,,,,) = GOVERNOR_BRAVO.proposals(_bravoProposalId);
+    function _getBravoProposalStartBlock(
+        uint256 _bravoProposalId
+    ) internal view returns (uint256) {
+        (, , , uint256 _startBlock, , , , , , ) = GOVERNOR_BRAVO.proposals(
+            _bravoProposalId
+        );
         return _startBlock;
     }
 
-    function _getBravoProposalEndBlock(uint256 _bravoProposalId) internal view returns (uint256) {
-        (,,,, uint256 _endBlock,,,,,) = GOVERNOR_BRAVO.proposals(_bravoProposalId);
+    function _getBravoProposalEndBlock(
+        uint256 _bravoProposalId
+    ) internal view returns (uint256) {
+        (, , , , uint256 _endBlock, , , , , ) = GOVERNOR_BRAVO.proposals(
+            _bravoProposalId
+        );
         return _endBlock;
     }
 
@@ -309,8 +432,12 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         }
     }
 
-    function _getBravoProposalEta(uint256 _bravoProposalId) internal view returns (uint256) {
-        (,, uint256 _eta,,,,,,,) = GOVERNOR_BRAVO.proposals(_bravoProposalId);
+    function _getBravoProposalEta(
+        uint256 _bravoProposalId
+    ) internal view returns (uint256) {
+        (, , uint256 _eta, , , , , , , ) = GOVERNOR_BRAVO.proposals(
+            _bravoProposalId
+        );
         return _eta;
     }
 
@@ -321,13 +448,19 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
 
     function _passBravoProposal(uint256 _bravoProposalId) internal {
         _jumpToActiveBravoProposal(_bravoProposalId);
-        _delegatesVoteOnBravoProposal(_bravoProposalId, GovernorCountingSimpleUpgradeable.VoteType.For);
+        _delegatesVoteOnBravoProposal(
+            _bravoProposalId,
+            GovernorCountingSimpleUpgradeable.VoteType.For
+        );
         _jumpToBravoVoteComplete(_bravoProposalId);
     }
 
     function _failBravoProposal(uint256 _bravoProposalId) internal {
         _jumpToActiveBravoProposal(_bravoProposalId);
-        _delegatesVoteOnBravoProposal(_bravoProposalId, GovernorCountingSimpleUpgradeable.VoteType.Against);
+        _delegatesVoteOnBravoProposal(
+            _bravoProposalId,
+            GovernorCountingSimpleUpgradeable.VoteType.Against
+        );
         _jumpToBravoVoteComplete(_bravoProposalId);
     }
 
@@ -336,7 +469,9 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
         GOVERNOR_BRAVO.queue(_bravoProposalId);
     }
 
-    function _passQueueAndExecuteBravoProposal(uint256 _bravoProposalId) public {
+    function _passQueueAndExecuteBravoProposal(
+        uint256 _bravoProposalId
+    ) public {
         _passAndQueueBravoProposal(_bravoProposalId);
         _jumpPastBravoProposalEta(_bravoProposalId);
         GOVERNOR_BRAVO.execute(_bravoProposalId);
