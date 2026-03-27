@@ -6,7 +6,7 @@ import { ICompoundTimelock } from "@openzeppelin/contracts/vendor/compound/IComp
 import { CompoundGovernorConstants } from "script/CompoundGovernorConstants.sol";
 import { DeployCompoundGovernor } from "script/DeployCompoundGovernor.s.sol";
 import { CompoundGovernor } from "contracts/CompoundGovernor.sol";
-import { GovernorBravoDelegate } from "contracts/GovernorBravoDelegate.sol";
+import { GovernorBravoInterface } from "contracts/GovernorBravoInterfaces.sol";
 import { IComp } from "contracts/interfaces/IComp.sol";
 import { IGovernor } from "contracts/extensions/IGovernor.sol";
 import { GovernorCountingSimpleUpgradeable } from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
@@ -27,8 +27,8 @@ contract CompoundGovernorTest is Test, CompoundGovernorConstants {
     CompoundGovernor.ProposalGuardian proposalGuardian;
     uint96 constant PROPOSAL_GUARDIAN_EXPIRY = 1_739_768_400;
 
-    GovernorBravoDelegate public constant GOVERNOR_BRAVO =
-        GovernorBravoDelegate(GOVERNOR_BRAVO_DELEGATE_ADDRESS);
+    GovernorBravoInterface public constant GOVERNOR_BRAVO =
+        GovernorBravoInterface(GOVERNOR_BRAVO_DELEGATE_ADDRESS);
 
     function setUp() public virtual {
         // set the RPC URL and the fork block number to create a local execution fork for testing
