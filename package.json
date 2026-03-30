@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "hardhat test",
-    "coverage": "hardhat coverage",
+    "coverage": "hardhat coverage && forge coverage --report lcov",
     "build": "hardhat compile",
     "lint:fix": "prettier --write {*.{js,ts},**/*.{sol,js,ts}} && eslint --fix . --ext js,ts",
     "lint:check": "concurrently \"prettier --check {*.{js,ts},**/*.{sol,js,ts}}\" \"eslint . --ext js,ts\"",

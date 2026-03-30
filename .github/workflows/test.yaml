@@ -50,12 +50,12 @@ jobs:
         run: npm ci
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-      - name: Run Forge Coverage
-        run: forge coverage --report lcov
       - name: Run Coverage
         run: npm run coverage
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
+        with:
+            files: coverage/lcov.info lcov.info
   lint:
     runs-on: ubuntu-latest
     steps:
