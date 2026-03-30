@@ -109,6 +109,7 @@ contract Propose is CompoundGovernorTest {
     function testFuzz_WhitelistedAccountCanProposeBelowThreshold(
         address _proposer
     ) public {
+        vm.assume(_proposer != PROXY_ADMIN_ADDRESS);
         Proposal memory _proposal = _buildAnEmptyProposal();
         _setWhitelistedProposer(_proposer);
         uint256 _proposalId = _getProposalId(_proposal);
