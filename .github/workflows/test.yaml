@@ -59,7 +59,9 @@ jobs:
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
-            files: lcov.info, coverage/lcov.info
+            files: lcov.info,coverage/lcov.info
+            token: ${{ secrets.CODECOV_TOKEN }}
+            slug: compound-finance/compound-governance
   lint:
     runs-on: ubuntu-latest
     steps:
