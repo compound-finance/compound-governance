@@ -56,14 +56,10 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
       - name: Run Coverage
         run: npm run coverage
-      - name: Install lcov
-        run: sudo apt-get install -y lcov
-      - name: Merge coverage
-        run: lcov -a coverage/lcov.info -a lcov.info -o merged.info --ignore-errors inconsistent,corrupt
-      - name: Coveralls GitHub Action
-        uses: coverallsapp/github-action@v2
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-            file: merged.info
+            files: lcov.info, coverage/lcov.info
   lint:
     runs-on: ubuntu-latest
     steps:
