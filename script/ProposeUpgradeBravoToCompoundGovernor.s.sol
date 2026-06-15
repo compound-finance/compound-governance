@@ -6,11 +6,11 @@ import {ICompoundTimelock} from "@openzeppelin/contracts/governance/extensions/G
 
 import {CompoundGovernor} from "contracts/CompoundGovernor.sol";
 import {CompoundGovernorConstants} from "script/CompoundGovernorConstants.sol";
-import {GovernorBravoDelegate} from "contracts/GovernorBravoDelegate.sol";
+import {GovernorBravoInterface} from "contracts/GovernorBravoInterfaces.sol";
 
 /// @notice Script to submit the proposal to upgrade from GovernorBravo to  CompoundGovernor.
 contract ProposeUpgradeBravoToCompoundGovernor is Script, CompoundGovernorConstants {
-    GovernorBravoDelegate public constant GOVERNOR_BRAVO = GovernorBravoDelegate(GOVERNOR_BRAVO_DELEGATE_ADDRESS);
+    GovernorBravoInterface public constant GOVERNOR_BRAVO = GovernorBravoInterface(GOVERNOR_BRAVO_DELEGATE_ADDRESS);
 
     function propose(CompoundGovernor _newGovernor) internal returns (uint256 _proposalId) {
         address[] memory _targets = new address[](3);

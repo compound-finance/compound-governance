@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.26;
 
-import {CompoundGovernorTest} from "contracts/test/helpers/CompoundGovernorTest.sol";
-import {IGovernor} from "contracts/extensions/IGovernor.sol";
-import {GovernorAlphaInterface} from "contracts/GovernorBravoInterfaces.sol";
+import { CompoundGovernorTest } from "test/helpers/CompoundGovernorTest.sol";
+import { IGovernor } from "contracts/extensions/IGovernor.sol";
+import { GovernorAlphaInterface } from "contracts/GovernorBravoInterfaces.sol";
 
 /// @notice Most governance operations that take a proposal ID parameter (queue, execute, cancel)
 /// are extensively tested in CompoundGovernor.t.sol. This test file focuses on the rest of the functionalities.
@@ -11,11 +11,10 @@ contract GovernorSequentialProposalIdUpgradeableTest is CompoundGovernorTest {
     GovernorAlphaInterface internal constant compoundGovernorBravo =
         GovernorAlphaInterface(0xc0Da02939E1441F497fd74F78cE7Decb17B66529);
 
-    function _buildBasicProposal(uint256 _newThreshold, string memory _description)
-        internal
-        view
-        returns (Proposal memory _proposal)
-    {
+    function _buildBasicProposal(
+        uint256 _newThreshold,
+        string memory _description
+    ) internal view returns (Proposal memory _proposal) {
         address[] memory _targets = new address[](1);
         _targets[0] = address(governor);
 
@@ -23,28 +22,47 @@ contract GovernorSequentialProposalIdUpgradeableTest is CompoundGovernorTest {
         _values[0] = 0;
 
         bytes[] memory _calldatas = new bytes[](1);
-        _calldatas[0] = _buildProposalData("setProposalThreshold(uint256)", abi.encode(_newThreshold));
+        _calldatas[0] = _buildProposalData(
+            "setProposalThreshold(uint256)",
+            abi.encode(_newThreshold)
+        );
         _proposal = Proposal(_targets, _values, _calldatas, _description);
     }
 }
 
 contract ProposalCount is GovernorSequentialProposalIdUpgradeableTest {
     function test_ReturnsCorrectProposalCount() public {
-        assertEq(governor.proposalCount(), compoundGovernorBravo.proposalCount());
+        assertEq(
+            governor.proposalCount(),
+            compoundGovernorBravo.proposalCount()
+        );
     }
 
-    function testFuzz_ProposalCreatedEventEmittedWithEnumeratedProposalId(uint256 _newValue) public {
-        _newValue = bound(_newValue, INITIAL_PROPOSAL_THRESHOLD, INITIAL_PROPOSAL_THRESHOLD + 10);
+    function testFuzz_ProposalCreatedEventEmittedWithEnumeratedProposalId(
+        uint256 _newValue
+    ) public {
+        _newValue = bound(
+            _newValue,
+            INITIAL_PROPOSAL_THRESHOLD,
+            INITIAL_PROPOSAL_THRESHOLD + 10
+        );
         address _proposer = _getRandomProposer();
-        string memory _description = "Checking for enumerated proposal IDs on events";
-        Proposal memory _firstProposal = _buildBasicProposal(_newValue, "First proposal to get an ID");
+        string
+            memory _description = "Checking for enumerated proposal IDs on events";
+        Proposal memory _firstProposal = _buildBasicProposal(
+            _newValue,
+            "First proposal to get an ID"
+        );
         uint256 _firstProposalId = _submitProposal(_proposer, _firstProposal);
         uint256 _originalProposalCount = governor.proposalCount();
 
         // Roll until proposal period is over so we can submit a new one
         vm.roll(vm.getBlockNumber() + governor.votingPeriod());
 
-        Proposal memory _proposal = _buildBasicProposal(_newValue, _description);
+        Proposal memory _proposal = _buildBasicProposal(
+            _newValue,
+            _description
+        );
         vm.expectEmit();
         emit IGovernor.ProposalCreated(
             _firstProposalId + 1,
@@ -63,12 +81,22 @@ contract ProposalCount is GovernorSequentialProposalIdUpgradeableTest {
     }
 
     function testFuzz_ProposalIdsAreSequential(uint256 _newValue) public {
-        _newValue = bound(_newValue, INITIAL_PROPOSAL_THRESHOLD, INITIAL_PROPOSAL_THRESHOLD + 10);
-        Proposal memory _proposal1 = _buildBasicProposal(_newValue, "Set New Proposal Threshold");
+        _newValue = bound(
+            _newValue,
+            INITIAL_PROPOSAL_THRESHOLD,
+            INITIAL_PROPOSAL_THRESHOLD + 10
+        );
+        Proposal memory _proposal1 = _buildBasicProposal(
+            _newValue,
+            "Set New Proposal Threshold"
+        );
         uint256 _proposalId1 = _submitProposal(_proposal1);
         // Roll until proposal period is over so we can submit a new one
         vm.roll(vm.getBlockNumber() + governor.votingPeriod());
-        Proposal memory _proposal2 = _buildBasicProposal(_newValue + 1, "Second Proposal");
+        Proposal memory _proposal2 = _buildBasicProposal(
+            _newValue + 1,
+            "Second Proposal"
+        );
         uint256 _proposalId2 = _submitProposal(_proposal2);
         assertEq(_proposalId2, _proposalId1 + 1);
     }
@@ -89,7 +117,12 @@ contract HashProposal is GovernorSequentialProposalIdUpgradeableTest {
         bytes[] memory _calldatas = new bytes[](1);
         bytes32 _descriptionHash = keccak256(bytes("An Empty Proposal"));
 
-        uint256 _proposalId = governor.hashProposal(_targets, _values, _calldatas, _descriptionHash);
+        uint256 _proposalId = governor.hashProposal(
+            _targets,
+            _values,
+            _calldatas,
+            _descriptionHash
+        );
         assertEq(_proposalId, governor.getNextProposalId());
         assertTrue(_proposalId > 0);
     }
@@ -109,7 +142,12 @@ contract ProposalDetails is GovernorSequentialProposalIdUpgradeableTest {
         bytes[] memory _calldatas = new bytes[](1);
         _calldatas[0] = _expectedCalldatas;
 
-        Proposal memory _proposal = Proposal(_targets, _values, _calldatas, _expectedDescription);
+        Proposal memory _proposal = Proposal(
+            _targets,
+            _values,
+            _calldatas,
+            _expectedDescription
+        );
         uint256 _proposalId = _submitProposal(_proposal);
 
         (
@@ -122,6 +160,9 @@ contract ProposalDetails is GovernorSequentialProposalIdUpgradeableTest {
         assertEq(_returnedTargets[0], _expectedTarget);
         assertEq(_returnedValues[0], _expectedValue);
         assertEq(_returnedCalldatas[0], _expectedCalldatas);
-        assertEq(keccak256(bytes(_expectedDescription)), _returnedDescriptionHash);
+        assertEq(
+            keccak256(bytes(_expectedDescription)),
+            _returnedDescriptionHash
+        );
     }
 }

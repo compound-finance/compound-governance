@@ -16,18 +16,18 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 16.x
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Use Node.js 24.x
         uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 24.x
           cache: 'npm'
       - name: Install Dependencies
         run: npm ci
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
       - name: Run Forge build
         run: |
           forge --version
@@ -42,35 +42,36 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 16.x
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Use Node.js 24.x
         uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 24.x
           cache: 'npm'
       - name: Install Dependencies
         run: npm ci
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-      - name: Run Forge build
-        run: |
-          forge --version
-          forge build --sizes
-        id: build
       - name: Run Coverage
         run: npm run coverage
-      - name: Coveralls GitHub Action
-        uses: coverallsapp/github-action@v2
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+            files: lcov.info,coverage/lcov.info
+            token: ${{ secrets.CODECOV_TOKEN }}
+            slug: compound-finance/compound-governance
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 16.x
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Use Node.js 24.x
         uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 24.x
           cache: 'npm'
       - name: Install Dependencies
         run: npm ci
